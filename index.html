@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>กลุ่มพัฒนาครูฯ สพป.ชัยนาท</title>
+
+    <!-- Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+
+<body>
+
+    <!-- Header Component -->
+    <div id="header-placeholder"></div>
+
+    <!-- Main Layout -->
+    <div class="container grid-layout">
+
+        <!-- Left Content -->
+        <main>
+
+            <!-- News Section -->
+            <section>
+                <h2 class="section-title" data-i18n="sec_news">📰 ข่าวประชาสัมพันธ์ล่าสุด</h2>
+                <div id="news-container" class="news-grid">
+                    <!-- News will be injected here by JS -->
+                </div>
+                <div style="text-align: center;">
+                    <a href="news.html" class="btn-download" data-i18n="btn_view_all_news"
+                        style="padding: 10px 20px; border: 1px solid var(--primary-purple); border-radius: 5px;">ดูข่าวทั้งหมด</a>
+                </div>
+            </section>
+
+            <!-- Banner Section (Updated) -->
+            <section class="banner-section" style="height: auto; min-height: auto;">
+                <h2 class="section-title" data-i18n="sec_banner" style="display:none;">เว็บไซต์กลุ่มบริหารงานบุคคล</h2>
+                <a href="https://sites.google.com/view/cntpa" target="_blank" style="display: block;">
+                    <img src="https://iud.cnt.go.th/source/1.gif?1740373368612" class="banner-img" alt="Banner"
+                        style="width: 100%; height: auto; object-fit: contain;">
+                </a>
+            </section>
+
+            <!-- OBEC Documents -->
+            <section>
+                <h2 class="section-title" data-i18n="sec_obec">📚 คู่มือ OBEC AWARD</h2>
+                <div class="doc-list" id="obec-container">
+                    <!-- OBEC Items will be injected here via main.js -->
+                    <div style="text-align: center; color: #999;">กำลังโหลดข้อมูล...</div>
+                </div>
+
+                <div style="margin-top: 2rem; text-align: center;">
+                    <a href="forms.html" class="btn-download" data-i18n="nav_forms"
+                        style="background:var(--primary-purple); color:white; padding: 12px 30px; border-radius: 8px;">แบบฟอร์ม</a>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Right Sidebar -->
+        <aside class="sidebar">
+            <!-- Registry System Image from User -->
+            <a href="https://script.google.com/macros/s/AKfycbypYPZ8CqMIct0hO9OVE-tpZHbevWYGGKh_UvgB1I9ci5a9JQ0vWDNh3TA7K-_fFUQ/exec"
+                class="sidebar-card" target="_blank" rel="noopener noreferrer">
+                <img src="assets/images/registry-system.png" alt="ระบบทะเบียนประวัติ">
+            </a>
+
+            <a href="certificates.html" class="sidebar-card">
+                <div class="sidebar-content">
+                    <div class="sidebar-icon">🏆</div>
+                    <div class="sidebar-title" data-i18n="sidebar_cert">คลังเกียรติบัตร</div>
+                    <div class="sidebar-subtitle" data-i18n="sidebar_cert_sub">รวบรวมรางวัลและผลงาน</div>
+                </div>
+            </a>
+
+            <a href="#" class="sidebar-card">
+                <div class="sidebar-content">
+                    <div class="sidebar-icon">📚</div>
+                    <div class="sidebar-title" data-i18n="sidebar_knowledge">คลังความรู้</div>
+                    <div class="sidebar-subtitle" data-i18n="sidebar_knowledge_sub">สื่อการสอนและเอกสาร</div>
+                </div>
+            </a>
+        </aside>
+
+    </div>
+
+    <!-- Footer Component -->
+    <div id="footer-placeholder"></div>
+
+    <!-- Scripts -->
+    <script src="assets/js/data.js?v=3"></script>
+    <script src="assets/js/main.js?v=3"></script>
+
+</body>
+
+</html>

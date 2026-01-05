@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>คลังเกียรติบัตร - กลุ่มพัฒนาครูฯ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        .search-container {
+            margin-bottom: 2rem;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 1rem 1.5rem;
+            padding-left: 3.5rem;
+            font-size: 1.1rem;
+            border: 2px solid #ddd;
+            border-radius: 50px;
+            font-family: var(--font-main);
+            transition: all 0.3s;
+            background: var(--white);
+            color: var(--text-dark);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary-purple);
+            box-shadow: 0 4px 12px rgba(123, 31, 162, 0.2);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 1.2rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-gray);
+            font-size: 1.2rem;
+        }
+
+        /* Certificate List Style */
+        .cert-table-container {
+            background: var(--white);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px var(--shadow);
+            overflow: hidden;
+        }
+
+        .cert-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .cert-table th,
+        .cert-table td {
+            padding: 1rem 1.5rem;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .cert-table th {
+            background: var(--primary-purple);
+            color: white;
+            font-weight: 600;
+        }
+
+        .cert-table tr:hover {
+            background: var(--bg-gray);
+        }
+
+        .cert-link {
+            display: inline-block;
+            padding: 6px 16px;
+            background: var(--primary-purple-light);
+            color: var(--primary-purple);
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .cert-link:hover {
+            background: var(--primary-purple);
+            color: white;
+        }
+
+        /* Responsive Table */
+        @media (max-width: 768px) {
+            .cert-table thead {
+                display: none;
+            }
+
+            .cert-table,
+            .cert-table tbody,
+            .cert-table tr,
+            .cert-table td {
+                display: block;
+                width: 100%;
+            }
+
+            .cert-table tr {
+                margin-bottom: 1rem;
+                background: var(--white);
+                border-radius: 8px;
+                box-shadow: 0 2px 4px var(--shadow);
+                padding: 1rem;
+            }
+
+            .cert-table td {
+                padding: 0.5rem 0;
+                text-align: right;
+                position: relative;
+                padding-left: 40%;
+                border-bottom: 1px solid #f0f0f0;
+            }
+
+            .cert-table td:last-child {
+                border-bottom: none;
+                margin-top: 0.5rem;
+                text-align: center;
+                padding-left: 0;
+            }
+
+            .cert-table td::before {
+                content: attr(data-label);
+                position: absolute;
+                left: 0;
+                width: 40%;
+                text-align: left;
+                font-weight: 600;
+                color: var(--text-gray);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="main-header">
+        <div class="header-content">
+            <div class="header-title-th">กลุ่มพัฒนาครูและบุคลากรทางการศึกษา</div>
+            <div class="header-title-en">Teacher and Educational Personnel Development Group</div>
+        </div>
+    </header>
+    <nav class="sticky-nav">
+        <div class="nav-container">
+            <ul class="nav-menu"></ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1 class="section-title">🏆 คลังเกียรติบัตร (Certificate Bank)</h1>
+
+        <div class="search-container">
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <div style="position: relative; flex: 2; min-width: 200px;">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="cert-search" class="search-input" placeholder="พิมพ์ชื่อ-สกุล, โรงเรียน...">
+                </div>
+
+                <div style="flex: 1; min-width: 150px;">
+                    <select id="filter-year" class="search-input" style="padding-left: 1rem;">
+                        <option value="">📅 ปีทั้งหมด</option>
+                    </select>
+                </div>
+
+                <div style="flex: 1; min-width: 150px;">
+                    <select id="filter-type" class="search-input" style="padding-left: 1rem;">
+                        <option value="">🎓 ประเภททั้งหมด</option>
+                        <option value="teacher">ผู้เข้าอบรม</option>
+                        <option value="speaker">วิทยากร</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div id="cert-loading" style="text-align: center; color: var(--text-gray); display: none;">กำลังโหลดข้อมูล...
+        </div>
+        <div id="cert-empty" style="text-align: center; color: var(--text-gray); padding: 2rem; display: none;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">❌</div>
+            ไม่พบข้อมูลที่ค้นหา
+        </div>
+
+        <div class="cert-table-container">
+            <table class="cert-table" id="cert-table">
+                <thead>
+                    <tr>
+                        <th width="30%">ชื่อ-สกุล</th>
+                        <th width="25%">หลักสูตร</th>
+                        <th width="15%">ปี</th>
+                        <th width="15%">ประเภท</th>
+                        <th width="15%">เอกสาร</th>
+                    </tr>
+                </thead>
+                <tbody id="cert-tbody">
+                    <!-- Data will be injected here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Footer Placeholder (Functions as both Logos and Footer) -->
+    <div id="footer-placeholder"></div>
+
+    <script src="assets/js/data.js?v=3"></script>
+    <script src="assets/js/main.js?v=3"></script>
+    <script>
+        // Custom Script for Certificate Search
+        document.addEventListener('DOMContentLoaded', async () => {
+            const tbody = document.getElementById('cert-tbody');
+            const searchInput = document.getElementById('cert-search');
+            const filterYear = document.getElementById('filter-year');
+            const filterType = document.getElementById('filter-type');
+
+            const loading = document.getElementById('cert-loading');
+            const empty = document.getElementById('cert-empty');
+            const table = document.getElementById('cert-table');
+
+            let allCerts = [];
+
+            // 🟢 ลิงก์จาก Google Sheet (เปลี่ยนตรงนี้)
+            const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTRZKKSC38bKraDDdDE5hjVGQtbr1e0inwEK63m73tJAnYaNNo_AbxbGX_IF__eEwRC7_JGB0-dQiDP/pub?output=csv";
+
+
+
+            // 1. Fetch Data (Supports both JSON and CSV)
+            try {
+                loading.style.display = 'block';
+
+                // ถ้ามีลิงก์ Google Sheet ให้โหลดจาก Sheet, ถ้าไม่มีให้โหลดจากไฟล์ JSON เดิม (Backup)
+                const url = GOOGLE_SHEET_CSV_URL;
+
+                const res = await fetch(url);
+                if (res.ok) {
+                    if (GOOGLE_SHEET_CSV_URL) {
+                        const text = await res.text();
+                        allCerts = parseCSV(text);
+                    } else {
+                        allCerts = await res.json();
+                    }
+
+                    // 1.5 Normalize Data (Convert Thai 'type' to English keys for consistent filtering)
+                    allCerts = allCerts.map(item => {
+                        const rawType = (item.type || '').trim();
+                        let stdType = 'teacher'; // Default
+
+                        if (['speaker', 'วิทยากร'].includes(rawType)) {
+                            stdType = 'speaker';
+                        } else if (['teacher', 'ผู้เข้าอบรม'].includes(rawType)) {
+                            stdType = 'teacher';
+                        }
+                        return { ...item, type: stdType };
+                    });
+
+                    populateYearFilter(allCerts); // สร้างตัวเลือกปี
+                    renderTable(allCerts);
+                } else {
+                    console.error("Failed to load certificates");
+                    empty.innerHTML = `❌ ไม่สามารถโหลดข้อมูลได้ <br><small>(${res.status} ${res.statusText})</small>`;
+                    empty.style.display = 'block';
+                }
+            } catch (e) {
+                console.error(e);
+                empty.innerHTML = `❌ เกิดข้อผิดพลาด: ${e.message}`;
+                empty.style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
+            }
+
+            // CSV Parser Helper
+            function parseCSV(text) {
+                const rows = text.split('\n').filter(r => r.trim() !== '');
+                const headers = rows[0].split(',').map(h => h.trim().replace(/^"|"$/g, '')); // Remove content quotes
+
+                return rows.slice(1).map(row => {
+                    // Handle quotes in CSV (Simple parser)
+                    const values = [];
+                    let inQuote = false;
+                    let currentVal = '';
+
+                    for (let i = 0; i < row.length; i++) {
+                        const char = row[i];
+                        if (char === '"') {
+                            inQuote = !inQuote;
+                        } else if (char === ',' && !inQuote) {
+                            values.push(currentVal.trim().replace(/^"|"$/g, ''));
+                            currentVal = '';
+                        } else {
+                            currentVal += char;
+                        }
+                    }
+                    values.push(currentVal.trim().replace(/^"|"$/g, '')); // Last value
+
+                    // Map to Object
+                    const obj = {};
+                    headers.forEach((h, index) => {
+                        obj[h] = values[index] || '';
+                    });
+                    return obj;
+                });
+            }
+
+            // 1.5 Populate Year Filter Dynamically
+            function populateYearFilter(data) {
+                if (!data) return;
+                // Extract unique years
+                const years = [...new Set(data.map(item => item.year).filter(y => y))].sort().reverse();
+
+                // Clear existing options except the first one
+                filterYear.innerHTML = '<option value="">📅 ปีทั้งหมด</option>';
+
+                years.forEach(year => {
+                    const option = document.createElement('option');
+                    option.value = year;
+                    option.innerText = year;
+                    filterYear.appendChild(option);
+                });
+            }
+
+            // 2. Render Function (Updated for Course)
+            function renderTable(data) {
+                if (!data || data.length === 0) {
+                    table.style.display = 'none';
+                    empty.style.display = 'block';
+                    return;
+                }
+
+                table.style.display = 'table';
+                empty.style.display = 'none';
+
+                tbody.innerHTML = data.map(cert => {
+                    const isSpeaker = ['speaker', 'วิทยากร'].includes((cert.type || '').trim());
+                    const typeLabel = isSpeaker ? '🎙️ วิทยากร' : '🧑‍🏫 ผู้เข้าอบรม';
+                    const typeColor = isSpeaker ? '#e91e63' : '#7b1fa2';
+                    // Helper to get ID from various Drive URL formats
+                    const getDriveId = (url) => {
+                        if (!url) return null;
+                        const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
+                        return match ? match[1] : null;
+                    };
+
+                    const driveId = getDriveId(cert.link);
+                    let viewUrl = cert.link;
+                    let downloadUrl = cert.link;
+
+                    if (driveId) {
+                        viewUrl = `https://drive.google.com/file/d/${driveId}/view?usp=sharing`;
+                        downloadUrl = `https://drive.google.com/uc?export=download&id=${driveId}`;
+                    }
+
+                    const isLinkValid = cert.link && cert.link.length > 2;
+
+                    let actionsHtml = `<span style="color:#ccc;">-</span>`;
+
+                    if (isLinkValid) {
+                        actionsHtml = `
+                            <div style="display: flex; gap: 5px; justify-content: flex-start;">
+                                <a href="#" onclick="openPopup('${viewUrl}'); return false;" class="cert-link" style="background: #FFF3E0; color: #ff9800;">
+                                    👁️ เปิดอ่าน
+                                </a>
+                                <a href="${downloadUrl}" target="_blank" class="cert-link">
+                                    ⬇️ โหลด
+                                </a>
+                            </div>
+                        `;
+                    }
+
+                    return `
+                    <tr>
+                        <td data-label="ชื่อ-สกุล"><strong>${cert.name}</strong></td>
+                        <td data-label="หลักสูตร">${cert.course || '-'}</td>
+                        <td data-label="ปี">${cert.year}</td>
+                        <td data-label="ประเภท"><span style="color:${typeColor}; font-weight:600;">${typeLabel}</span></td>
+                        <td data-label="เอกสาร">${actionsHtml}</td>
+                    </tr>
+                `}).join('');
+            }
+
+            // 3. Search Logic (Combined)
+            function filterData() {
+                const term = searchInput.value.toLowerCase().trim();
+                const year = filterYear.value;
+                const type = filterType.value;
+
+                console.log("Filtering:", { term, year, type });
+
+                const filtered = allCerts.filter(c => {
+                    // 1. Check Year
+                    if (year && c.year !== year) return false;
+
+                    // 2. Check Type
+                    if (type && c.type !== type) return false;
+
+                    // 3. Check Text Search
+                    if (term) {
+                        return c.name.toLowerCase().includes(term) ||
+                            (c.course && c.course.toLowerCase().includes(term));
+                    }
+
+                    return true;
+                });
+
+                renderTable(filtered);
+            }
+
+            // Event Listeners
+            searchInput.addEventListener('input', filterData);
+            filterYear.addEventListener('change', filterData);
+            filterType.addEventListener('change', filterData);
+        });
+    </script>
+</body>
+
+</html>
