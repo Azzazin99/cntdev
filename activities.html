@@ -259,13 +259,13 @@
                 const container = document.getElementById('all-news-container');
 
                 try {
-                    // Fetch from Firestore
-                    const snapshot = await db.collection('news').get();
+                    // Fetch from Firestore (Activities Only)
+                    const snapshot = await db.collection('activities').get();
                     const items = [];
                     snapshot.forEach(doc => items.push({ id: doc.id, ...doc.data() }));
 
-                    // Filter: Only 'activity'
-                    const activities = items.filter(i => i.category === 'activity');
+                    // No need to Filter: Collection is pure
+                    const activities = items;
 
                     // Sort: Order > Date (Descending)
                     activities.sort((a, b) => {
@@ -279,8 +279,8 @@
 
                     // CHECK: If Cloud is empty, try fallback to Local JSON
                     if (activities.length === 0) {
-                        console.warn("Cloud is empty, trying local JSON...");
-                        throw new Error("Empty Cloud Data"); // Trigger catch block to load local
+                        console.warn("Cloud is empty, trying local JSON (activities.json)...");
+                        throw new Error("Empty Cloud Data");
                     }
 
                     renderActivities(activities);
@@ -288,11 +288,13 @@
                 } catch (e) {
                     console.error("Firebase Error:", e);
                     // Fallback
-                    if (window.SITE_DATA && window.SITE_DATA.news) {
-                        const legacy = window.SITE_DATA.news.filter(i => i.category === 'activity');
+                    try {
+                        // Fetch split activities.json
+                        const res = await fetch('assets/data/activities.json?v=' + Date.now());
+                        const legacy = await res.json();
                         activityData = legacy;
                         renderActivities(legacy);
-                    } else {
+                    } catch (err) {
                         container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: #d32f2f;">ไม่สามารถโหลดข้อมูลได้ (Cloud Error): ${e.message}</div>`;
                     }
                 }

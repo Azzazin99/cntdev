@@ -597,7 +597,7 @@
         }
 
         // ================= Global State =================
-        let SITE_DATA = { news: [], manuals: [], plans: [], forms: [], personnel: [], obec: [] };
+        let SITE_DATA = { news: [], activity: [], manuals: [], plans: [], forms: [], personnel: [], obec: [] };
         let isEditing = false;
         let currentModalCategory = 'news'; // 'news' or 'activity'
 
@@ -679,37 +679,51 @@
 
         async function loadAllData() {
             try {
-                // 1. Load News from Firebase Firestore (Cloud)
+                // 1. Load News & Activities from Firebase Firestore (Cloud)
                 try {
-                    const snapshot = await db.collection('news').get();
-                    const newsList = [];
-                    snapshot.forEach(doc => {
-                        newsList.push({ id: doc.id, ...doc.data() });
-                    });
+                    // Fetch News
+                    const newsSnaps = await db.collection('news').get();
+                    SITE_DATA.news = [];
+                    newsSnaps.forEach(doc => SITE_DATA.news.push({ id: doc.id, ...doc.data() }));
 
-                    // Sort (Order by 'sortOrder' if exists, else Date)
-                    newsList.sort((a, b) => {
+                    // Fetch Activities
+                    const actSnaps = await db.collection('activities').get();
+                    SITE_DATA.activity = [];
+                    actSnaps.forEach(doc => SITE_DATA.activity.push({ id: doc.id, ...doc.data() }));
+
+                    console.log(`✅ Loaded ${SITE_DATA.news.length} News, ${SITE_DATA.activity.length} Activities from Cloud`);
+
+                    // Sort both
+                    const sorter = (a, b) => {
                         const orderA = a.sortOrder || parseThaiDate(a.date);
                         const orderB = b.sortOrder || parseThaiDate(b.date);
-                        return orderB - orderA; // Descending
-                    });
+                        return orderB - orderA;
+                    }
+                    SITE_DATA.news.sort(sorter);
+                    SITE_DATA.activity.sort(sorter);
 
-                    SITE_DATA.news = newsList;
-                    console.log(`✅ Loaded ${newsList.length} News from Cloud`);
                 } catch (e) {
                     console.error("Firebase Load Error:", e);
-                    // Fallback to JSON if empty? No, show empty to avoid confusion.
                     SITE_DATA.news = [];
+                    SITE_DATA.activity = [];
                 }
 
                 // 2. Load other static data from JSON (Legacy)
-                const [manualsRes, plansRes, formsRes, personnelRes, obecRes] = await Promise.all([
+                // Also fetch local JSONs as fallback references or for migration
+                const [newsRes, actRes, manualsRes, plansRes, formsRes, personnelRes, obecRes] = await Promise.all([
+                    fetch('assets/data/news.json?v=' + Date.now()).catch(e => null),
+                    fetch('assets/data/activities.json?v=' + Date.now()).catch(e => null),
                     fetch('assets/data/manuals.json?v=' + Date.now()).catch(e => null),
                     fetch('assets/data/plans.json?v=' + Date.now()).catch(e => null),
                     fetch('assets/data/forms.json?v=' + Date.now()).catch(e => null),
                     fetch('assets/data/personnel.json?v=' + Date.now()).catch(e => null),
                     fetch('assets/data/obec.json?v=' + Date.now()).catch(e => null)
                 ]);
+
+                // Store local reference if cloud empty? 
+                // Actually, for Admin, we prefer Cloud. But let's keep references if needed.
+                if (SITE_DATA.news.length === 0 && newsRes && newsRes.ok) SITE_DATA.news = await newsRes.json();
+                if (SITE_DATA.activity.length === 0 && actRes && actRes.ok) SITE_DATA.activity = await actRes.json();
 
                 if (manualsRes && manualsRes.ok) SITE_DATA.manuals = await manualsRes.json();
                 if (plansRes && plansRes.ok) SITE_DATA.plans = await plansRes.json();
@@ -753,12 +767,8 @@
             // type = 'news' or 'activity'
             const container = document.getElementById(type === 'news' ? 'admin-news-list' : 'admin-activity-list');
 
-            // Filter data
-            // If item has no category, assume regular news
-            const items = SITE_DATA.news.filter(item => {
-                const cat = item.category || 'news';
-                return cat === type;
-            });
+            // Data is now separated
+            const items = SITE_DATA[type] || [];
 
             if (items.length === 0) {
                 container.innerHTML = `<div style="text-align:center; padding:20px; color:#999;">ยังไม่มีข้อมูล</div>`;
@@ -982,10 +992,12 @@
             }
 
             try {
-                // Save to Firestore (Cloud)
-                await db.collection('news').doc(finalId.toString()).set(newItem, { merge: true });
+                // Save to Firestore (Cloud) - based on category
+                const collectionName = category === 'news' ? 'news' : 'activities';
 
-                alert('✅ บันทึกข้อมูลขึ้น Cloud เรียบร้อย!');
+                await db.collection(collectionName).doc(finalId.toString()).set(newItem, { merge: true });
+
+                alert(`✅ บันทึกข้อมูล (${category}) ขึ้น Cloud เรียบร้อย!`);
                 closeModal();
 
                 // Reload data from Cloud to reflect changes
@@ -1072,7 +1084,7 @@
                         });
 
                         // 2. Get Data for this Category
-                        const categoryItems = SITE_DATA.news.filter(n => n.category === category);
+                        const categoryItems = SITE_DATA[category] || [];
 
                         // 3. Collect Available sortOrder values
                         // We want to re-distribute existing sortKeys to the new order
@@ -1086,13 +1098,14 @@
                         // 4. Batch Update Firestore
                         try {
                             const batch = db.batch();
+                            const collectionName = category === 'news' ? 'news' : 'activities';
 
                             newOrderIds.forEach((id, index) => {
                                 // Assign the (index)-th highest sortOrder to the (index)-th item in the new list
                                 const newSortOrder = availableSortOrders[index];
                                 const finalOrder = newSortOrder !== undefined ? newSortOrder : (Date.now() - index * 1000);
 
-                                const docRef = db.collection('news').doc(id);
+                                const docRef = db.collection(collectionName).doc(id);
                                 batch.update(docRef, { sortOrder: finalOrder });
                             });
 
@@ -1118,7 +1131,8 @@
             if (confirm("ต้องการลบรายการนี้ใช่ไหม?")) {
                 try {
                     // Delete from Firestore
-                    await db.collection('news').doc(String(id)).delete();
+                    const collectionName = type === 'news' ? 'news' : 'activities';
+                    await db.collection(collectionName).doc(String(id)).delete();
 
                     alert('✅ ลบรายการเรียบร้อย');
 
