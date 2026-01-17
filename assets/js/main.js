@@ -89,10 +89,22 @@ if (currentTheme === 'dark') document.body.classList.add('dark-mode');
 document.addEventListener('DOMContentLoaded', async () => {
   await loadComponents();
 
-  // 2. Load Data (News, Manuals, Plans, Forms, Personnel, OBEC)
+  // 2. Load Data (Manuals, Plans, Forms, Personnel, OBEC)
+  // NEWS is now fetched from Firestore (async)
   try {
-    const [newsRes, manualsRes, plansRes, formsRes, personnelRes, obecRes] = await Promise.all([
-      fetch('assets/data/news.json').catch(e => null),
+
+    // Initialize Firebase (if not already done via script tag, but main.js runs everywhere)
+    // We need to check if firebase is available. 
+    // If we want main.js to handle firebase, we should inject the SDK in index.html too.
+    // For now, let's assume we maintain hybrid approach:
+    // If on homepage, try fetch firestore if SDK exists? No, main.js is generic.
+
+    // BETTER APPROACH:
+    // We update index.html to include Firebase SDK (just like news.html).
+    // And here in main.js, we check if `db` exists.
+
+    // For Manuals/Others (Still JSON)
+    const [manualsRes, plansRes, formsRes, personnelRes, obecRes] = await Promise.all([
       fetch('assets/data/manuals.json').catch(e => null),
       fetch('assets/data/plans.json').catch(e => null),
       fetch('assets/data/forms.json').catch(e => null),
@@ -100,21 +112,67 @@ document.addEventListener('DOMContentLoaded', async () => {
       fetch('assets/data/obec.json').catch(e => null)
     ]);
 
-    if (newsRes && newsRes.ok) SITE_DATA.news = await newsRes.json();
-    if (manualsRes && manualsRes.ok) SITE_DATA.manuals = await manualsRes.json();
-    if (plansRes && plansRes.ok) SITE_DATA.plans = await plansRes.json();
-    if (formsRes && formsRes.ok) SITE_DATA.forms = await formsRes.json();
-    if (personnelRes && personnelRes.ok) SITE_DATA.personnel = await personnelRes.json();
-    if (obecRes && obecRes.ok) SITE_DATA.obec = await obecRes.json();
+    // Parse JSON
+    const SITE_DATA = {
+      manuals: manualsRes ? await manualsRes.json() : [],
+      plans: plansRes ? await plansRes.json() : [],
+      forms: formsRes ? await formsRes.json() : [],
+      personnel: personnelRes ? await personnelRes.json() : [],
+      obec: obecRes ? await obecRes.json() : [],
+      news: [] // Initial empty, will fill from Firestore
+    };
 
-    console.log("Data loaded:", {
-      news: SITE_DATA.news?.length,
-      manuals: SITE_DATA.manuals?.length,
-      plans: SITE_DATA.plans?.length,
-      forms: SITE_DATA.forms?.length,
-      personnel: SITE_DATA.personnel?.length,
-      obec: SITE_DATA.obec?.length
-    });
+    // Make global
+    window.SITE_DATA = SITE_DATA;
+
+    // 3. Fetch NEWS from Firestore (if available) or JSON fallback
+    if (typeof db !== 'undefined') {
+      try {
+        const snapshot = await db.collection('news').get();
+        const items = [];
+        snapshot.forEach(doc => items.push({ id: doc.id, ...doc.data() }));
+
+        // Sort Descending
+        items.sort((a, b) => {
+          // Inline parseThaiDate logic or use simple string compare fallback?
+          // Let's use simple ID or SortOrder if available
+          return (b.sortOrder || 0) - (a.sortOrder || 0);
+        });
+
+        // Fallback sort if no sortOrder (using Date string is tricky without helper)
+        if (!items[0]?.sortOrder) {
+          // Quick Date Parse Helper
+          function parseDate(str) {
+            if (!str) return 0;
+            const p = str.split(' ');
+            if (p.length < 3) return 0;
+            return new Date(parseInt(p[2]) - 543, ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"].indexOf(p[1]), parseInt(p[0])).getTime();
+          }
+          items.sort((a, b) => parseDate(b.date) - parseDate(a.date));
+        }
+
+        window.SITE_DATA.news = items;
+
+      } catch (e) {
+        console.warn("Firestore fetch failed in main.js, trying local JSON", e);
+        const newsRes = await fetch('assets/data/news.json');
+        window.SITE_DATA.news = await newsRes.json();
+      }
+    } else {
+      // Fallback for pages without Firebase SDK (unless we add it to all)
+      // Try to fetch local JSON
+      const newsRes = await fetch('assets/data/news.json').catch(e => null);
+      if (newsRes) window.SITE_DATA.news = await newsRes.json();
+    }
+
+    // 4. Dispatch Event "DataLoaded"
+    const event = new Event('site-data-loaded');
+    document.dispatchEvent(event);
+
+    // 5. Render Widgets (if on Homepage)
+    if (document.getElementById('latest-news-list')) {
+      renderLatestNewsWidget();
+    }
 
   } catch (error) {
     console.warn("Data loading error (using fallbacks):", error);

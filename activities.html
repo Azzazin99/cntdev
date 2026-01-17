@@ -9,6 +9,11 @@
         rel="stylesheet">
     <link rel="stylesheet" href="assets/css/style.css">
 
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="assets/js/firebase-config.js"></script>
+
     <style>
         /* Activity Detail Modal */
         .activity-modal-overlay {
@@ -230,74 +235,81 @@
     <script src="assets/js/main.js?v=3"></script>
 
     <script>
-        // Activity Data Store
+        // Activity Data Store for Modal
         let activityData = [];
 
-        // Custom Script for Activity Filtering
+        // Main Logic
         (function () {
+            // Helper: Parse Thai Date
+            function parseThaiDate(dateStr) {
+                if (!dateStr) return 0;
+                const parts = dateStr.trim().split(/\s+/);
+                if (parts.length < 3) return 0;
+                const day = parseInt(parts[0]);
+                const monthName = parts[1];
+                const yearBE = parseInt(parts[2]);
+                const yearAD = yearBE - 543;
+                const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+                const monthIndex = thaiMonths.indexOf(monthName);
+                if (monthIndex === -1) return 0;
+                return new Date(yearAD, monthIndex, day).getTime();
+            }
+
             document.addEventListener('DOMContentLoaded', async () => {
                 const container = document.getElementById('all-news-container');
 
-                // 1. Try fetching data directly
                 try {
-                    const response = await fetch(`assets/data/news.json?v=${new Date().getTime()}`);
-                    if (response.ok) {
-                        const data = await response.json();
-                        activityData = data;
-                        renderActivities(data);
-                        return;
-                    }
+                    // Fetch from Firestore
+                    const snapshot = await db.collection('news').get();
+                    const items = [];
+                    snapshot.forEach(doc => items.push({ id: doc.id, ...doc.data() }));
+
+                    // Filter: Only 'activity'
+                    const activities = items.filter(i => i.category === 'activity');
+
+                    // Sort: Order > Date (Descending)
+                    activities.sort((a, b) => {
+                        const orderA = a.sortOrder || parseThaiDate(a.date);
+                        const orderB = b.sortOrder || parseThaiDate(b.date);
+                        return orderB - orderA;
+                    });
+
+                    // Store global for modal
+                    activityData = activities;
+
+                    renderActivities(activities);
+
                 } catch (e) {
-                    console.warn("Direct fetch failed, falling back to SITE_DATA");
+                    console.error("Firebase Error:", e);
+                    // Fallback
+                    if (window.SITE_DATA && window.SITE_DATA.news) {
+                        const legacy = window.SITE_DATA.news.filter(i => i.category === 'activity');
+                        activityData = legacy;
+                        renderActivities(legacy);
+                    } else {
+                        container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: #d32f2f;">ไม่สามารถโหลดข้อมูลได้ (Cloud Error): ${e.message}</div>`;
+                    }
                 }
-
-                // 2. Fallback: Wait for main.js SITE_DATA
-                const checkData = setInterval(() => {
-                    if (window.SITE_DATA && window.SITE_DATA.news && window.SITE_DATA.news.length > 0) {
-                        clearInterval(checkData);
-                        activityData = window.SITE_DATA.news;
-                        renderActivities(window.SITE_DATA.news);
-                    }
-                }, 100);
-
-                // 3. Safety timeout
-                setTimeout(() => {
-                    clearInterval(checkData);
-                    if (container.innerHTML.includes('กำลังโหลด')) {
-                        if (window.SITE_DATA && window.SITE_DATA.news) {
-                            activityData = window.SITE_DATA.news;
-                            renderActivities(window.SITE_DATA.news);
-                        } else {
-                            container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: #d32f2f;">ไม่สามารถโหลดข้อมูลได้ กรุณารีเฟรชหน้าจอ</div>';
-                        }
-                    }
-                }, 5000);
             });
 
-            function renderActivities(dataSource) {
+            function renderActivities(items) {
                 const container = document.getElementById('all-news-container');
-                const allNews = dataSource || window.SITE_DATA?.news || [];
-
-                // Filter strictly for 'activity'
-                const filtered = allNews.filter(item => item.category === 'activity');
-
-                if (filtered.length === 0) {
-                    container.innerHTML = `
-                        <div style="grid-column: 1/-1; text-align: center; padding: 3rem; color: #999;">
-                            <div style="font-size: 3rem; margin-bottom: 1rem;">📭</div>
-                            ไม่มีภาพกิจกรรม
-                        </div>
-                     `;
+                if (items.length === 0) {
+                    container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 3rem; color: #999;">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">📭</div>
+                        ไม่มีภาพกิจกรรม
+                    </div>`;
                 } else {
-                    container.innerHTML = filtered.slice().map(news => `
-                        <div class="news-card" onclick="openActivityModal(${news.id})">
-                            <img src="${news.image}" class="news-img" alt="${news.title}" 
+                    container.innerHTML = items.map(item => `
+                        <div class="news-card" onclick="openActivityModal('${item.id}')">
+                            <img src="${item.image}" class="news-img" alt="${item.title}" 
                                  onerror="this.onerror=null; this.src='assets/images/logos/moe.png'; this.style.opacity='0.5';">
                             <div class="news-content">
-                                <div class="news-date">${news.date}</div>
-                                <div class="news-title">${news.title}</div>
-                                <div class="news-desc">${news.summary || ''}</div>
-                                <div class="news-read-more">ดูรายละเอียด →</div>
+                                <div class="news-date">📅 ${item.date}</div>
+                                <h3 class="news-title">${item.title}</h3>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: auto;">
+                                    <span class="news-read-more">ดูภาพกิจกรรม →</span>
+                                </div>
                             </div>
                         </div>
                     `).join('');
@@ -307,7 +319,9 @@
 
         // Modal Functions
         function openActivityModal(id) {
-            const item = activityData.find(n => n.id === id);
+            // Ensure ID is string
+            const strId = String(id);
+            const item = activityData.find(n => String(n.id) === strId);
             if (!item) return;
 
             document.getElementById('modal-activity-image').src = item.image || 'assets/images/logos/moe.png';

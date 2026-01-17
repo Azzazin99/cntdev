@@ -419,7 +419,7 @@
         <div class="admin-container">
             <h1>⚙️ ระบบจัดการข้อมูลเว็บไซต์ (Admin V3.2)</h1>
             <p>แยกหมวดหมู่ข่าวและกิจกรรมชัดเจน</p>
-            <div style="position: absolute; top: 1rem; right: 1rem; display: flex; gap: 10px;">
+            <div id="header-actions" style="position: absolute; top: 1rem; right: 1rem; display: flex; gap: 10px;">
                 <button onclick="toggleDarkMode()" class="btn-secondary" style="padding: 8px 12px; font-size: 1.2rem;"
                     title="สลับโหมดมืด/สว่าง">
                     🌓
@@ -553,7 +553,8 @@
                         <input type="text" id="news-image" placeholder="https://..." oninput="previewImage()"
                             style="flex: 1; min-width: 200px;">
                         <button class="btn-secondary" onclick="previewImage()">ดูรูป</button>
-                        <button class="btn-success" onclick="downloadImageFromUrl()" style="white-space: nowrap;">📥
+                        <button id="btn-download-local" class="btn-success" onclick="downloadImageFromUrl()"
+                            style="white-space: nowrap;">📥
                             ดาวน์โหลดรูป</button>
                     </div>
                     <small>วาง URL รูปจาก Facebook แล้วกด "ดาวน์โหลดรูป" เพื่อบันทึกเก็บไว้ในเครื่อง</small>
@@ -575,6 +576,15 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/th.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
+    <!-- Firebase SDK (Compat version for HTML usage) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
+    <!-- Firebase Config -->
+    <script src="assets/js/firebase-config.js"></script>
+
     <script>
         // ================= Security Check =================
         if (sessionStorage.getItem('isAdminLoggedIn') !== 'true') {
@@ -594,9 +604,50 @@
         // ================= Initialization =================
         document.addEventListener('DOMContentLoaded', async () => {
             initDarkMode();
-            await loadAllData();
+            await loadAllData(); // Load JSON first (Legacy)
             initDatePicker();
+
+            // Temporary Migration Tool
+            checkMigrationStatus();
         });
+
+        // ================= Cloud Migration =================
+        function checkMigrationStatus() {
+            // Fix: Target the new ID 'header-actions'
+            const headerActions = document.getElementById('header-actions');
+            if (!headerActions) return;
+
+            const btn = document.createElement('button');
+            btn.className = 'btn-success';
+            btn.style.marginRight = '10px'; // Spacing
+            btn.innerHTML = '☁️ Sync to Cloud';
+            btn.onclick = migrateToCloud;
+
+            // Insert before the Dark Mode toggle (first child) or append
+            headerActions.prepend(btn);
+        }
+
+        async function migrateToCloud() {
+            if (!confirm('ยืนยันการอัพโหลดข้อมูลที่มีอยู่ (JSON) ขึ้น Firebase Cloud?\n(ควรรันครั้งเดียว)')) return;
+
+            try {
+                const batch = db.batch(); // Firestore Batch
+                let count = 0;
+
+                // Migrate News & Activities
+                SITE_DATA.news.forEach(item => {
+                    const docRef = db.collection('news').doc(item.id.toString());
+                    batch.set(docRef, item);
+                    count++;
+                });
+
+                await batch.commit();
+                alert(`✅ สำเร็จ! อัพโหลด ${count} รายการขึ้นระบบ Cloud แล้ว`);
+            } catch (error) {
+                console.error("Migration Failed:", error);
+                alert("❌ เกิดข้อผิดพลาด: " + error.message);
+            }
+        }
 
         // ================= Dark Mode Logic =================
         function initDarkMode() {
@@ -614,9 +665,31 @@
 
         async function loadAllData() {
             try {
-                // Fetch all JS files
-                const [newsRes, manualsRes, plansRes, formsRes, personnelRes, obecRes] = await Promise.all([
-                    fetch('assets/data/news.json?v=' + Date.now()).catch(e => null),
+                // 1. Load News from Firebase Firestore (Cloud)
+                try {
+                    const snapshot = await db.collection('news').get();
+                    const newsList = [];
+                    snapshot.forEach(doc => {
+                        newsList.push({ id: doc.id, ...doc.data() });
+                    });
+
+                    // Sort (Order by 'sortOrder' if exists, else Date)
+                    newsList.sort((a, b) => {
+                        const orderA = a.sortOrder || parseThaiDate(a.date);
+                        const orderB = b.sortOrder || parseThaiDate(b.date);
+                        return orderB - orderA; // Descending
+                    });
+
+                    SITE_DATA.news = newsList;
+                    console.log(`✅ Loaded ${newsList.length} News from Cloud`);
+                } catch (e) {
+                    console.error("Firebase Load Error:", e);
+                    // Fallback to JSON if empty? No, show empty to avoid confusion.
+                    SITE_DATA.news = [];
+                }
+
+                // 2. Load other static data from JSON (Legacy)
+                const [manualsRes, plansRes, formsRes, personnelRes, obecRes] = await Promise.all([
                     fetch('assets/data/manuals.json?v=' + Date.now()).catch(e => null),
                     fetch('assets/data/plans.json?v=' + Date.now()).catch(e => null),
                     fetch('assets/data/forms.json?v=' + Date.now()).catch(e => null),
@@ -624,30 +697,22 @@
                     fetch('assets/data/obec.json?v=' + Date.now()).catch(e => null)
                 ]);
 
-                if (newsRes && newsRes.ok) SITE_DATA.news = await newsRes.json();
                 if (manualsRes && manualsRes.ok) SITE_DATA.manuals = await manualsRes.json();
                 if (plansRes && plansRes.ok) SITE_DATA.plans = await plansRes.json();
                 if (formsRes && formsRes.ok) SITE_DATA.forms = await formsRes.json();
                 if (personnelRes && personnelRes.ok) SITE_DATA.personnel = await personnelRes.json();
                 if (obecRes && obecRes.ok) SITE_DATA.obec = await obecRes.json();
 
-                renderNewsList('news');
-                renderNewsList('activity');
-                renderListEditor('manuals');
-                renderListEditor('plans');
-                renderListEditor('forms');
-                renderListEditor('obec');
-                renderPersonnelEditor();
-
-                document.getElementById('status-text').innerText = "พร้อมใช้งาน";
-                document.getElementById('status-text').style.color = "green";
+                // Initial Render
+                renderNewsList(currentModalCategory);
 
             } catch (error) {
                 console.error("Load Error:", error);
-                document.getElementById('status-text').innerText = "เชื่อมต่อไม่ได้";
-                document.getElementById('status-text').style.color = "red";
+                alert("❌ เกิดข้อผิดพลาดในการโหลดข้อมูล: " + error.message);
             }
         }
+
+
 
         // ================= Tabs Logic =================
         function switchTab(tabName) {
@@ -778,6 +843,12 @@
                 return;
             }
 
+            // Check if we are on Vercel/Cloud (no local server)
+            if (window.location.hostname.includes('vercel.app')) {
+                alert('⚠️ ฟีเจอร์ "ดาวน์โหลดรูปลงเครื่อง" ใช้งานได้เฉพาะ Localhost เท่านั้น\n\nบน Cloud รบกวนใช้ URL รูปภาพโดยตรง หรืออัปโหลดผ่าน Storage (กำลังพัฒนา)');
+                return;
+            }
+
             const btn = event.target;
             const originalText = btn.innerHTML;
             btn.innerHTML = '⏳ กำลังดาวน์โหลด...';
@@ -789,6 +860,12 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ url: imageUrl })
                 });
+
+                // Check for HTML response (404/500 from Vercel) instead of JSON
+                const contentType = response.headers.get("content-type");
+                if (contentType && contentType.indexOf("application/json") === -1) {
+                    throw new Error("Server Error (Not JSON). Are you on Vercel?");
+                }
 
                 const result = await response.json();
 
@@ -802,7 +879,7 @@
                 }
             } catch (error) {
                 console.error('Download error:', error);
-                alert('❌ เกิดข้อผิดพลาด: ' + error.message + '\n\nหมายเหตุ: ต้องเปิด Admin Server ก่อน (python3 admin_server.py)');
+                alert('❌ เกิดข้อผิดพลาด: ' + error.message + '\n\nฟีเจอร์นี้ต้องใช้ Python Server (Local Only)');
             } finally {
                 btn.innerHTML = originalText;
                 btn.disabled = false;
@@ -883,24 +960,27 @@
                 summary
             };
 
-            if (isEditing) {
-                // Editing existing item: Update in place (User may have manually moved it, so don't re-sort automatically?)
-                // User requirement: "admin can move... but auto-sort on upload"
-                // So editing preserves position.
-                const index = SITE_DATA.news.findIndex(n => n.id === finalId);
-                if (index !== -1) SITE_DATA.news[index] = newItem;
-            } else {
-                // Adding new item: Auto-Sort
-                insertSorted(SITE_DATA.news, newItem);
+            // Calculate SortOrder for new items (based on Date)
+            // For editing, we try to preserve existing order, but since we don't have it handy in variables,
+            // we rely on merge: true to not overwrite it if it exists.
+            if (!isEditing) {
+                newItem.sortOrder = parseThaiDate(date);
             }
 
-            // Refresh UI
-            closeModal();
-            renderNewsList('news');
-            renderNewsList('activity');
+            try {
+                // Save to Firestore (Cloud)
+                await db.collection('news').doc(finalId.toString()).set(newItem, { merge: true });
 
-            // Save to Server
-            await saveToServer('news.json', SITE_DATA.news);
+                alert('✅ บันทึกข้อมูลขึ้น Cloud เรียบร้อย!');
+                closeModal();
+
+                // Reload data from Cloud to reflect changes
+                await loadAllData();
+
+            } catch (error) {
+                console.error("Save Error:", error);
+                alert("❌ บันทึกไม่สำเร็จ: " + error.message);
+            }
         }
 
         // ================= Drag & Drop Reordering =================
@@ -971,92 +1051,48 @@
 
                         // 1. Get all items of this category from DOM
                         const rows = el.querySelectorAll('.list-item-row');
-                        const newCategoryOrderIds = [];
+                        const newOrderIds = [];
                         rows.forEach(row => {
-                            // We need ID to identify item. 
-                            // Currently renderNewsList uses data-id (we need to ensure it does)
                             const id = row.getAttribute('data-id');
-                            if (id) newCategoryOrderIds.push(parseInt(id));
+                            if (id) newOrderIds.push(id.toString());
                         });
 
-                        // 2. Reconstruct SITE_DATA.news
-                        // Iterate through original list.
-                        // If item is NOT in this category, keep it.
-                        // If item IS in this category, take the next one from newCategoryOrderIds.
-
-                        const newFullList = [];
-                        let catIndex = 0;
-
-                        // We need to know which positions in the original array belonged to this category
-                        const indices = [];
-                        SITE_DATA.news.forEach((item, idx) => {
-                            if (item.category === category) indices.push(idx);
-                        });
-
-                        // Rebuild
-                        // It's easier to verify: logic is: 
-                        // The items of this category are extracted -> reordered -> put back into their slots?
-                        // OR does reordering mean they essentially clump together?
-                        // Usually, drag-and-drop implies specific slot swapping.
-
-                        // BETTER: Just extract all non-category items, and all category items.
-                        // Reorder category items.
-                        // Merge? NO, that loses relative mixing (though if we have strict tabs, mixing doesn't matter much)
-
-                        // User separates Tabs. 
-                        // So effectively we can treat them as independent lists for display order.
-                        // BUT they share one JSON file.
-                        // Let's assume we preserve the "slots" of the category items.
-
+                        // 2. Get Data for this Category
                         const categoryItems = SITE_DATA.news.filter(n => n.category === category);
-                        const otherItems = SITE_DATA.news.filter(n => n.category !== category);
 
-                        // But wait, if SITE_DATA.news is [News1, Act1, News2, Act2]
-                        // And in Activity tab (Act1, Act2), we swap to (Act2, Act1).
-                        // Should result be [News1, Act2, News2, Act1]? Yes.
+                        // 3. Collect Available sortOrder values
+                        // We want to re-distribute existing sortKeys to the new order
+                        let availableSortOrders = categoryItems.map(item => {
+                            return item.sortOrder || parseThaiDate(item.date);
+                        });
 
-                        // Implementation:
-                        // 1. Map current items in SITE_DATA.news to "is_targeted_category" boolean.
-                        // 2. Extract targeted items.
-                        // 3. From DOM, we have the NEW order of targeted items (by ID).
-                        // 4. Create an iterator for the new ordered items.
-                        // 5. Map back: if originally was target category, replace with next from new order.
+                        // Sort values Descending (High to Low)
+                        availableSortOrders.sort((a, b) => b - a);
 
-                        const reorderedIds = newCategoryOrderIds;
-                        let nextReorderedIdx = 0;
+                        // 4. Batch Update Firestore
+                        try {
+                            const batch = db.batch();
 
-                        for (let i = 0; i < SITE_DATA.news.length; i++) {
-                            if (SITE_DATA.news[i].category === category) {
-                                // Find the item object with the ID from reordered list
-                                const targetId = reorderedIds[nextReorderedIdx++];
-                                const targetItem = SITE_DATA.news.find(n => n.id === targetId); // This search is safe but inefficient O(N^2), but N is small
-                                // We can optimize by pre-map.
-                                // Actually, simpler:
-                            }
+                            newOrderIds.forEach((id, index) => {
+                                // Assign the (index)-th highest sortOrder to the (index)-th item in the new list
+                                const newSortOrder = availableSortOrders[index];
+                                const finalOrder = newSortOrder !== undefined ? newSortOrder : (Date.now() - index * 1000);
+
+                                const docRef = db.collection('news').doc(id);
+                                batch.update(docRef, { sortOrder: finalOrder });
+                            });
+
+                            await batch.commit();
+                            console.log(`✅ Reordered ${newOrderIds.length} items`);
+
+                            // Reload to sync Local Data
+                            await loadAllData();
+
+                        } catch (error) {
+                            console.error("Reorder Error:", error);
+                            alert("❌ จัดเรียงไม่สำเร็จ: " + error.message);
+
                         }
-
-                        // OPTIMIZED REBUILD:
-                        // Filter old list to get items of this category (in old order) - useless
-                        // We have the new order of IDs: newCategoryOrderIds.
-                        // We iterate the MAIN list. When we hit an item of `category`, we confirm it's a "slot" for this category.
-                        // We fill that slot with the next item from `newCategoryOrderIds`.
-
-                        const itemsMap = new Map(SITE_DATA.news.map(i => [i.id, i]));
-                        const newMainList = [...SITE_DATA.news];
-
-                        let pointer = 0;
-                        for (let i = 0; i < newMainList.length; i++) {
-                            const itemCat = newMainList[i].category || 'news';
-                            if (itemCat === category) {
-                                const newId = newCategoryOrderIds[pointer++];
-                                if (newId) { // Safety check
-                                    newMainList[i] = itemsMap.get(newId);
-                                }
-                            }
-                        }
-
-                        SITE_DATA.news = newMainList;
-                        await saveToServer('news.json', SITE_DATA.news);
                     }
                 });
                 el.sortableInitialized = true;
