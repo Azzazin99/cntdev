@@ -1229,7 +1229,11 @@
                     alert('❌ เกิดข้อผิดพลาด: ' + result.message);
                 }
             } catch (error) {
-                alert('❌ ไม่สามารถเชื่อมต่อ Server ได้ (รัน launch_admin หรือยัง?)');
+                if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+                    alert('❌ ฟีเจอร์นี้ ("' + filename + '") ยังไม่รองรับการแก้ไขบน Cloud\n\n(รองรับเฉพาะข่าวและกิจกรรมเท่านั้นในตอนนี้)');
+                } else {
+                    alert('❌ ไม่สามารถเชื่อมต่อ Server ได้ (รัน launch_admin หรือยัง?)');
+                }
                 console.error(error);
             }
         }
