@@ -1100,12 +1100,21 @@
         }
 
 
-        function deleteNews(id, type) {
+        async function deleteNews(id, type) {
             if (confirm("ต้องการลบรายการนี้ใช่ไหม?")) {
-                SITE_DATA.news = SITE_DATA.news.filter(n => n.id !== id);
-                renderNewsList('news');
-                renderNewsList('activity');
-                saveToServer('news.json', SITE_DATA.news);
+                try {
+                    // Delete from Firestore
+                    await db.collection('news').doc(String(id)).delete();
+
+                    alert('✅ ลบรายการเรียบร้อย');
+
+                    // Reload data
+                    await loadAllData();
+
+                } catch (error) {
+                    console.error("Delete Error:", error);
+                    alert("❌ ลบไม่สำเร็จ: " + error.message);
+                }
             }
         }
 
@@ -1196,6 +1205,12 @@
 
         // ================= Server Save API =================
         async function saveToServer(filename, data) {
+            // Check for Cloud Environment
+            if (window.location.hostname.includes('vercel.app')) {
+                alert(`⚠️ การแก้ไขข้อมูล "${filename}" ยังไม่รองรับบนระบบ Cloud (รองรับเฉพาะ ข่าว/กิจกรรม)\n\nระบบกำลังพัฒนาส่วนนี้ครับ`);
+                return;
+            }
+
             try {
                 const res = await fetch('/api/save-data', {
                     method: 'POST',
