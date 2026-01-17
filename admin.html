@@ -631,22 +631,41 @@
             if (!confirm('ยืนยันการอัพโหลดข้อมูลที่มีอยู่ (JSON) ขึ้น Firebase Cloud?\n(ควรรันครั้งเดียว)')) return;
 
             try {
+                // Force fetch local JSON data to ensure we have something to upload
+                // (Because SITE_DATA.news might be empty if it tried to load from empty Cloud first)
+                const res = await fetch('assets/data/news.json?v=' + Date.now());
+                const localHealthData = await res.json();
+
+                if (!localHealthData || localHealthData.length === 0) {
+                    alert("ไม่พบข้อมูลเก่ายัง Local JSON");
+                    return;
+                }
+
                 const batch = db.batch(); // Firestore Batch
                 let count = 0;
 
                 // Migrate News & Activities
-                SITE_DATA.news.forEach(item => {
+                localHealthData.forEach(item => {
                     const docRef = db.collection('news').doc(item.id.toString());
                     batch.set(docRef, item);
                     count++;
                 });
 
                 await batch.commit();
-                alert(`✅ สำเร็จ! อัพโหลด ${count} รายการขึ้นระบบ Cloud แล้ว`);
+                alert(`✅ สำเร็จ! อัพโหลด ${count} รายการขึ้นระบบ Cloud แล้ว\n\nรีเฟรชหน้าจอเพื่อดูข้อมูลได้เลย`);
+
+                // Reload
+                await loadAllData();
+
             } catch (error) {
                 console.error("Migration Failed:", error);
                 alert("❌ เกิดข้อผิดพลาด: " + error.message);
             }
+        }
+            } catch (error) {
+            console.error("Migration Failed:", error);
+            alert("❌ เกิดข้อผิดพลาด: " + error.message);
+        }
         }
 
         // ================= Dark Mode Logic =================
