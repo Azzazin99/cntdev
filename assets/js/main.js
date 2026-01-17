@@ -153,6 +153,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         window.SITE_DATA.news = items;
 
+        // CHECK: If Cloud is empty, try fallback to Local JSON
+        if (items.length === 0) {
+          console.warn("Cloud is empty in main.js, trying local JSON...");
+          throw new Error("Empty Cloud Data");
+        }
+
       } catch (e) {
         console.warn("Firestore fetch failed in main.js, trying local JSON", e);
         const newsRes = await fetch('assets/data/news.json');
