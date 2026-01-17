@@ -15,6 +15,7 @@ const SITE_DATA = {
         { text: "คู่มือการปฏิบัติงาน", link: "manual.html" },
         { text: "แผนพัฒนาครู", link: "plan.html" },
         { text: "ข่าวประชาสัมพันธ์", link: "news.html" },
+        { text: "ภาพกิจกรรม", link: "activities.html" },
         { text: "คลังเกียรติบัตร", link: "certificates.html" },
         { text: "บุคลากร", link: "users.html" },
         { text: "แบบฟอร์ม", link: "forms.html" }

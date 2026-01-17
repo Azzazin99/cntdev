@@ -928,3 +928,150 @@ img {
 input:checked+.slider .icon-sun {
     opacity: 0.3;
 }
+/* ==================== TIMELINE NEWS ==================== */
+.timeline-container {
+    position: relative;
+    padding-left: 2rem;
+    border-left: 2px solid var(--primary-purple-light);
+    margin: 1rem 0 3rem 1rem;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 2rem;
+}
+
+.timeline-dot {
+    position: absolute;
+    left: -2.45rem;
+    top: 5px;
+    width: 14px;
+    height: 14px;
+    background: var(--primary-purple);
+    border-radius: 50%;
+    border: 3px solid white;
+    box-shadow: 0 0 0 2px var(--primary-purple-light);
+    transition: transform 0.2s, background 0.2s;
+}
+
+.timeline-item:hover .timeline-dot {
+    background: white;
+    border-color: var(--primary-purple);
+    transform: scale(1.2);
+}
+
+.timeline-content {
+    background: white;
+    padding: 1.2rem 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px var(--shadow);
+    transition: transform 0.2s, box-shadow 0.2s;
+    border-left: 4px solid var(--primary-purple);
+}
+
+.timeline-item:hover .timeline-content {
+    transform: translateX(10px);
+    box-shadow: 0 5px 15px rgba(123, 31, 162, 0.15);
+}
+
+.timeline-date {
+    font-size: 0.9rem;
+    color: var(--primary-purple);
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.timeline-title {
+    font-size: 1.1rem;
+    color: var(--text-dark);
+    font-weight: 500;
+    line-height: 1.5;
+}
+
+.timeline-link {
+    text-decoration: none;
+    display: block;
+}
+
+/* ==================== SHARED NEWS LIST (TEXT ONLY) ==================== */
+.news-link-item {
+    display: block;
+    padding: 1rem 0;
+    border-bottom: 1px solid #eee;
+    transition: color 0.2s;
+    text-decoration: none;
+    color: var(--text-dark);
+}
+
+.news-link-item:hover {
+    color: var(--primary-purple);
+}
+
+.news-link-date {
+    font-size: 0.9rem;
+    color: var(--text-gray);
+    margin-bottom: 0.3rem;
+    font-weight: 500;
+}
+
+.news-link-title {
+    font-size: 1.1rem;
+    font-weight: 400;
+}
+
+/* ==================== POLISHED NEWS LIST (INTERACTIVE) ==================== */
+.news-link-item {
+    position: relative;
+    display: block;
+    padding: 1.2rem 1.5rem; /* More breathing room */
+    border-bottom: 1px solid #f0f0f0;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    color: var(--text-dark);
+    background: var(--white); /* Use variable for dark mode support */
+    border-radius: 8px; /* Soft edges */
+    margin-bottom: 0.5rem;
+}
+
+/* Hover State */
+.news-link-item:hover {
+    background: #fdfdfd;
+    transform: translateX(5px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    border-left: 4px solid var(--primary-purple);
+    color: var(--primary-purple);
+}
+
+/* Dark Mode Overrides for News List */
+body.dark-mode .news-link-item {
+    background: var(--white); /* Will map to dark gray */
+    color: var(--text-dark); /* Will map to light gray */
+    border-bottom-color: #3e3e3e;
+}
+
+body.dark-mode .news-link-item:hover {
+    background: #383838; /* Slightly lighter than base dark */
+    color: var(--primary-purple); /* Ensure this is readable */
+}
+
+/* Date Style */
+.news-link-date {
+    font-size: 0.85rem;
+    color: var(--text-gray);
+    margin-bottom: 0.4rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Title Style */
+.news-link-title {
+    font-size: 1.1rem;
+    font-weight: 400;
+    line-height: 1.6;
+}
+

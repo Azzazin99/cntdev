@@ -155,16 +155,33 @@
     <div class="container">
         <h1 class="section-title">🏆 คลังเกียรติบัตร (Certificate Bank)</h1>
 
+
+
+        <!-- Hero Section -->
+        <div
+            style="text-align: center; margin-bottom: 2rem; padding: 2rem; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border-radius: 16px;">
+            <div style="font-size: 4rem; margin-bottom: 1rem;">🎓</div>
+            <h2 style="color: var(--primary-purple); margin-bottom: 0.5rem;">ค้นหาเกียรติบัตรของคุณ</h2>
+            <p style="color: var(--text-gray); font-size: 1.1rem;">พิมพ์ชื่อ-นามสกุล
+                เพื่อตรวจสอบและดาวน์โหลดเอกสาร</p>
+        </div>
+
         <div class="search-container">
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                 <div style="position: relative; flex: 2; min-width: 200px;">
                     <span class="search-icon">🔍</span>
-                    <input type="text" id="cert-search" class="search-input" placeholder="พิมพ์ชื่อ-สกุล, โรงเรียน...">
+                    <input type="text" id="cert-search" class="search-input" placeholder="พิมพ์ชื่อ-สกุล...">
                 </div>
 
                 <div style="flex: 1; min-width: 150px;">
                     <select id="filter-year" class="search-input" style="padding-left: 1rem;">
                         <option value="">📅 ปีทั้งหมด</option>
+                    </select>
+                </div>
+
+                <div style="flex: 1; min-width: 150px;">
+                    <select id="filter-course" class="search-input" style="padding-left: 1rem;">
+                        <option value="">📘 หลักสูตรทั้งหมด</option>
                     </select>
                 </div>
 
@@ -215,6 +232,7 @@
             const searchInput = document.getElementById('cert-search');
             const filterYear = document.getElementById('filter-year');
             const filterType = document.getElementById('filter-type');
+            const filterCourse = document.getElementById('filter-course');
 
             const loading = document.getElementById('cert-loading');
             const empty = document.getElementById('cert-empty');
@@ -256,8 +274,19 @@
                         return { ...item, type: stdType };
                     });
 
+
                     populateYearFilter(allCerts); // สร้างตัวเลือกปี
-                    renderTable(allCerts);
+                    populateCourseFilter(allCerts); // สร้างตัวเลือกหลักสูตร
+
+                    // 2. Hybrid View: Show only last 10 items initially
+                    const recentCerts = allCerts.slice(0, 10);
+                    renderTable(recentCerts);
+
+                    // Optional: Add indicator
+                    if (allCerts.length > 10) {
+                        // We could add a "Showing recent..." label here if we had a dedicated element
+                    }
+
                 } else {
                     console.error("Failed to load certificates");
                     empty.innerHTML = `❌ ไม่สามารถโหลดข้อมูลได้ <br><small>(${res.status} ${res.statusText})</small>`;
@@ -321,6 +350,20 @@
                 });
             }
 
+            // 1.6 Populate Course Filter
+            function populateCourseFilter(data) {
+                if (!data) return;
+                const courses = [...new Set(data.map(item => item.course).filter(c => c && c.trim() !== '-'))].sort();
+
+                filterCourse.innerHTML = '<option value="">📘 หลักสูตรทั้งหมด</option>';
+                courses.forEach(course => {
+                    const option = document.createElement('option');
+                    option.value = course;
+                    option.innerText = course;
+                    filterCourse.appendChild(option);
+                });
+            }
+
             // 2. Render Function (Updated for Course)
             function renderTable(data) {
                 if (!data || data.length === 0) {
@@ -359,14 +402,12 @@
                     if (isLinkValid) {
                         actionsHtml = `
                             <div style="display: flex; gap: 5px; justify-content: flex-start;">
-                                <a href="#" onclick="openPopup('${viewUrl}'); return false;" class="cert-link" style="background: #FFF3E0; color: #ff9800;">
-                                    👁️ เปิดอ่าน
-                                </a>
-                                <a href="${downloadUrl}" target="_blank" class="cert-link">
-                                    ⬇️ โหลด
+                                <a href="#" onclick="openPopup('${viewUrl}'); return false;" class="cert-link">
+                                    ⬇️ ดาวน์โหลด
                                 </a>
                             </div>
                         `;
+
                     }
 
                     return `
@@ -385,8 +426,15 @@
                 const term = searchInput.value.toLowerCase().trim();
                 const year = filterYear.value;
                 const type = filterType.value;
+                const course = filterCourse.value;
 
-                console.log("Filtering:", { term, year, type });
+                console.log("Filtering:", { term, year, type, course });
+
+                // 0. Check if search is cleared -> Show "Recent 10" again
+                if (!term && !year && !type && !course) {
+                    renderTable(allCerts.slice(0, 10));
+                    return;
+                }
 
                 const filtered = allCerts.filter(c => {
                     // 1. Check Year
@@ -395,7 +443,10 @@
                     // 2. Check Type
                     if (type && c.type !== type) return false;
 
-                    // 3. Check Text Search
+                    // 3. Check Course
+                    if (course && c.course !== course) return false;
+
+                    // 4. Check Text Search
                     if (term) {
                         return c.name.toLowerCase().includes(term) ||
                             (c.course && c.course.toLowerCase().includes(term));
@@ -411,6 +462,7 @@
             searchInput.addEventListener('input', filterData);
             filterYear.addEventListener('change', filterData);
             filterType.addEventListener('change', filterData);
+            filterCourse.addEventListener('change', filterData);
         });
     </script>
 </body>

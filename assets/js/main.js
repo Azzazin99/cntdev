@@ -228,33 +228,17 @@ function renderContent() {
   if (homeNewsContainer && SITE_DATA.news) {
     // Reverse first to get newest, then slice top 3
     homeNewsContainer.innerHTML = [...SITE_DATA.news].reverse().slice(0, 3).map(news => `
-            <a href="${news.link}" class="news-card">
-                <img src="${news.image}" class="news-img" alt="${news.title}">
-                <div class="news-content">
-                    <div class="news-date">${news.date}</div>
-                    <div class="news-title">${news.title}</div>
-                    <div class="news-desc">${news.summary}</div>
-                    <div class="news-read-more">อ่านต่อ →</div>
-                </div>
+            <a href="#" onclick="openPopup('${news.link}'); return false;" class="news-link-item">
+                <div class="news-link-date">📅 ${news.date}</div>
+                <div class="news-link-title">${news.title}</div>
             </a>
         `).join('');
   }
 
   // 1.5 หน้า News (All) - แสดงทั้งหมด (Newest First)
-  const allNewsContainer = document.getElementById('all-news-container');
-  if (allNewsContainer && SITE_DATA.news) {
-    allNewsContainer.innerHTML = [...SITE_DATA.news].reverse().map(news => `
-            <a href="${news.link}" class="news-card">
-                <img src="${news.image}" class="news-img" alt="${news.title}">
-                <div class="news-content">
-                    <div class="news-date">${news.date}</div>
-                    <div class="news-title">${news.title}</div>
-                    <div class="news-desc">${news.summary}</div>
-                    <div class="news-read-more">อ่านต่อ →</div>
-                </div>
-            </a>
-        `).join('');
-  }
+  // 1.5 หน้า News (All) - Logic removal:
+  // Render handled individually by news.html and activities.html inline scripts to allow custom layouts.
+
 
   // 2. หน้า Personnel (Org Chart Layout)
   const userContainer = document.getElementById('personnel-container');

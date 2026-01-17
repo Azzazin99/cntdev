@@ -1,0 +1,354 @@
+﻿<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ภาพกิจกรรม - กลุ่มพัฒนาครูฯ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/style.css">
+
+    <style>
+        /* Activity Detail Modal */
+        .activity-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .activity-modal-overlay.active {
+            display: flex;
+        }
+
+        .activity-modal {
+            background: var(--white, #fff);
+            max-width: 800px;
+            width: 100%;
+            max-height: 90vh;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .activity-modal-header {
+            padding: 20px;
+            background: var(--primary-purple, #7b1fa2);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .activity-modal-header h2 {
+            margin: 0;
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        .activity-modal-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 2rem;
+            cursor: pointer;
+            line-height: 1;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+
+        .activity-modal-close:hover {
+            opacity: 1;
+        }
+
+        .activity-modal-body {
+            padding: 0;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .activity-modal-image {
+            width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+            background: #f5f5f5;
+        }
+
+        .activity-modal-content {
+            padding: 25px;
+        }
+
+        .activity-modal-date {
+            color: var(--primary-purple, #7b1fa2);
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+        }
+
+        .activity-modal-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: var(--text-dark, #333);
+            line-height: 1.4;
+        }
+
+        .activity-modal-summary {
+            color: var(--text-gray, #666);
+            line-height: 1.8;
+            font-size: 1rem;
+            white-space: pre-line;
+        }
+
+        .activity-modal-footer {
+            padding: 15px 25px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-gray, #f8f9fa);
+        }
+
+        .activity-fb-link {
+            color: #1877f2;
+            text-decoration: none;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .activity-fb-link:hover {
+            text-decoration: underline;
+        }
+
+        .activity-close-btn {
+            background: var(--primary-purple, #7b1fa2);
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Sarabun', sans-serif;
+        }
+
+        .activity-close-btn:hover {
+            opacity: 0.9;
+        }
+
+        /* Card improvements */
+        .news-card {
+            cursor: pointer;
+        }
+
+        /* Dark mode support */
+        body.dark-mode .activity-modal {
+            background: var(--white, #2d2e31);
+        }
+
+        body.dark-mode .activity-modal-title {
+            color: var(--text-dark, #e8eaed);
+        }
+
+        body.dark-mode .activity-modal-summary {
+            color: var(--text-gray, #9aa0a6);
+        }
+
+        body.dark-mode .activity-modal-footer {
+            background: var(--bg-gray, #202124);
+            border-color: #404040;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Header Component -->
+    <div id="header-placeholder"></div>
+
+    <div class="container">
+        <h1 class="section-title">📸 ภาพกิจกรรมทั้งหมด</h1>
+        <div class="news-grid" id="all-news-container">
+            <div style="grid-column: 1/-1; text-align: center; color: #999; padding: 2rem;">⏳ กำลังโหลดภาพกิจกรรม...
+            </div>
+        </div>
+    </div>
+
+    <!-- Activity Detail Modal -->
+    <div class="activity-modal-overlay" id="activity-modal">
+        <div class="activity-modal">
+            <div class="activity-modal-header">
+                <h2>📸 รายละเอียดกิจกรรม</h2>
+                <button class="activity-modal-close" onclick="closeActivityModal()">&times;</button>
+            </div>
+            <div class="activity-modal-body">
+                <img id="modal-activity-image" class="activity-modal-image" src="" alt="Activity Image">
+                <div class="activity-modal-content">
+                    <div id="modal-activity-date" class="activity-modal-date"></div>
+                    <h3 id="modal-activity-title" class="activity-modal-title"></h3>
+                    <p id="modal-activity-summary" class="activity-modal-summary"></p>
+                </div>
+            </div>
+            <div class="activity-modal-footer">
+                <a id="modal-fb-link" href="#" target="_blank" class="activity-fb-link">
+                    🔗 ดูโพสต์ต้นฉบับบน Facebook
+                </a>
+                <button class="activity-close-btn" onclick="closeActivityModal()">ปิด</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Logos -->
+    <!-- External Links -->
+    <!-- Footer Component -->
+    <div id="footer-placeholder"></div>
+
+    <script src="assets/js/data.js?v=3"></script>
+    <script src="assets/js/main.js?v=3"></script>
+
+    <script>
+        // Activity Data Store
+        let activityData = [];
+
+        // Custom Script for Activity Filtering
+        (function () {
+            document.addEventListener('DOMContentLoaded', async () => {
+                const container = document.getElementById('all-news-container');
+
+                // 1. Try fetching data directly
+                try {
+                    const response = await fetch(`assets/data/news.json?v=${new Date().getTime()}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        activityData = data;
+                        renderActivities(data);
+                        return;
+                    }
+                } catch (e) {
+                    console.warn("Direct fetch failed, falling back to SITE_DATA");
+                }
+
+                // 2. Fallback: Wait for main.js SITE_DATA
+                const checkData = setInterval(() => {
+                    if (window.SITE_DATA && window.SITE_DATA.news && window.SITE_DATA.news.length > 0) {
+                        clearInterval(checkData);
+                        activityData = window.SITE_DATA.news;
+                        renderActivities(window.SITE_DATA.news);
+                    }
+                }, 100);
+
+                // 3. Safety timeout
+                setTimeout(() => {
+                    clearInterval(checkData);
+                    if (container.innerHTML.includes('กำลังโหลด')) {
+                        if (window.SITE_DATA && window.SITE_DATA.news) {
+                            activityData = window.SITE_DATA.news;
+                            renderActivities(window.SITE_DATA.news);
+                        } else {
+                            container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: #d32f2f;">ไม่สามารถโหลดข้อมูลได้ กรุณารีเฟรชหน้าจอ</div>';
+                        }
+                    }
+                }, 5000);
+            });
+
+            function renderActivities(dataSource) {
+                const container = document.getElementById('all-news-container');
+                const allNews = dataSource || window.SITE_DATA?.news || [];
+
+                // Filter strictly for 'activity'
+                const filtered = allNews.filter(item => item.category === 'activity');
+
+                if (filtered.length === 0) {
+                    container.innerHTML = `
+                        <div style="grid-column: 1/-1; text-align: center; padding: 3rem; color: #999;">
+                            <div style="font-size: 3rem; margin-bottom: 1rem;">📭</div>
+                            ไม่มีภาพกิจกรรม
+                        </div>
+                     `;
+                } else {
+                    container.innerHTML = filtered.slice().map(news => `
+                        <div class="news-card" onclick="openActivityModal(${news.id})">
+                            <img src="${news.image}" class="news-img" alt="${news.title}" 
+                                 onerror="this.onerror=null; this.src='assets/images/logos/moe.png'; this.style.opacity='0.5';">
+                            <div class="news-content">
+                                <div class="news-date">${news.date}</div>
+                                <div class="news-title">${news.title}</div>
+                                <div class="news-desc">${news.summary || ''}</div>
+                                <div class="news-read-more">ดูรายละเอียด →</div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            }
+        })();
+
+        // Modal Functions
+        function openActivityModal(id) {
+            const item = activityData.find(n => n.id === id);
+            if (!item) return;
+
+            document.getElementById('modal-activity-image').src = item.image || 'assets/images/logos/moe.png';
+            document.getElementById('modal-activity-date').innerText = '📅 ' + item.date;
+            document.getElementById('modal-activity-title').innerText = item.title;
+            document.getElementById('modal-activity-summary').innerText = item.summary || 'ไม่มีรายละเอียดเพิ่มเติม';
+
+            const fbLink = document.getElementById('modal-fb-link');
+            if (item.link && item.link.includes('facebook.com')) {
+                fbLink.href = item.link;
+                fbLink.style.display = 'flex';
+            } else if (item.facebookLink) {
+                fbLink.href = item.facebookLink;
+                fbLink.style.display = 'flex';
+            } else {
+                fbLink.style.display = 'none';
+            }
+
+            document.getElementById('activity-modal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeActivityModal() {
+            document.getElementById('activity-modal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        // Close on overlay click
+        document.getElementById('activity-modal').addEventListener('click', function (e) {
+            if (e.target === this) {
+                closeActivityModal();
+            }
+        });
+
+        // Close on ESC key
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                closeActivityModal();
+            }
+        });
+    </script>
+</body>
+
+</html>
