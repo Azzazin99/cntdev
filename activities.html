@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+﻿﻿﻿﻿<!DOCTYPE html>
 <html lang="th">
 
 <head>
@@ -12,6 +12,8 @@
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="assets/js/firebase-config.js"></script>
 
     <style>
@@ -259,13 +261,10 @@
                 const container = document.getElementById('all-news-container');
 
                 try {
-                    // Fetch from Firestore (Activities Only)
+                    // Fetch from Firestore (Activities Only) - Cloud First
                     const snapshot = await db.collection('activities').get();
-                    const items = [];
-                    snapshot.forEach(doc => items.push({ id: doc.id, ...doc.data() }));
-
-                    // No need to Filter: Collection is pure
-                    const activities = items;
+                    const activities = [];
+                    snapshot.forEach(doc => activities.push({ id: doc.id, ...doc.data() }));
 
                     // Sort: Order > Date (Descending)
                     activities.sort((a, b) => {
@@ -277,26 +276,11 @@
                     // Store global for modal
                     activityData = activities;
 
-                    // CHECK: If Cloud is empty, try fallback to Local JSON
-                    if (activities.length === 0) {
-                        console.warn("Cloud is empty, trying local JSON (activities.json)...");
-                        throw new Error("Empty Cloud Data");
-                    }
-
                     renderActivities(activities);
 
                 } catch (e) {
-                    console.error("Firebase Error:", e);
-                    // Fallback
-                    try {
-                        // Fetch split activities.json
-                        const res = await fetch('assets/data/activities.json?v=' + Date.now());
-                        const legacy = await res.json();
-                        activityData = legacy;
-                        renderActivities(legacy);
-                    } catch (err) {
-                        container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: #d32f2f;">ไม่สามารถโหลดข้อมูลได้ (Cloud Error): ${e.message}</div>`;
-                    }
+                    console.error("Load Error:", e);
+                    container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: #d32f2f;">ไม่สามารถโหลดข้อมูลได้ (Cloud Error): ${e.message}</div>`;
                 }
             });
 

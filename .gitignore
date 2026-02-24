@@ -8,3 +8,4 @@ env/
 .env
 .vercel
 .env*.local
+serviceAccountKey.json

@@ -1,0 +1,8 @@
+serviceAccountKey.json
+*.py
+*.command
+*.sh
+.agent
+.vscode
+.gitignore
+README.md

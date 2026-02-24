@@ -442,13 +442,17 @@
             <button class="tab-btn" data-tab="plans" onclick="switchTab('plans')">📈 แผนพัฒนาครู</button>
             <button class="tab-btn" data-tab="forms" onclick="switchTab('forms')">📝 แบบฟอร์ม</button>
             <button class="tab-btn" data-tab="personnel" onclick="switchTab('personnel')">👥 บุคลากร</button>
-            <button class="tab-btn" data-tab="obec" onclick="switchTab('obec')">🏆 OBEC Award</button>
+
         </div>
 
         <!-- ==================== TAB: NEWS (PR News) ==================== -->
         <div id="tab-news" class="tab-content active">
             <div class="toolbar">
                 <button class="btn-primary" onclick="openModal('news')">+ เพิ่มข่าวใหม่</button>
+                <button class="btn-success" onclick="document.getElementById('csv-file-input').click()">📄 Import from
+                    Sheets (CSV)</button>
+                <input type="file" id="csv-file-input" accept=".csv" style="display: none;"
+                    onchange="handleCSVUpload(this)">
                 <div class="status-indicator">
                     สถานะ: <span id="status-text">พร้อมใช้งาน</span>
                 </div>
@@ -504,14 +508,7 @@
             <div id="personnel-editor" class="list-editor"></div>
         </div>
 
-        <!-- ==================== TAB: OBEC ==================== -->
-        <div id="tab-obec" class="tab-content">
-            <div class="toolbar">
-                <button class="btn-primary" onclick="addListItem('obec')">+ เพิ่มคู่มือ OBEC</button>
-                <button class="btn-success" onclick="saveList('obec')">💾 บันทึกคู่มือ OBEC</button>
-            </div>
-            <div id="obec-editor" class="list-editor"></div>
-        </div>
+
 
     </div>
 
@@ -527,9 +524,9 @@
                 <input type="hidden" id="news-category-hidden"> <!-- Stores current mode -->
 
                 <div class="form-group">
-                    <label>ลิงก์ Facebook (Link หรือ Embed Code)</label>
+                    <label id="label-link">ลิงก์ Facebook (Link หรือ Embed Code)</label>
                     <input type="text" id="news-link" placeholder="วางลิงก์โพสต์ Facebook หรือรหัสฝัง (iframe)">
-                    <small>ระบบจะดึงรูปและลิงก์จริงให้อัตโนมัติ</small>
+                    <small id="help-link">ระบบจะดึงรูปและลิงก์จริงให้อัตโนมัติ</small>
                 </div>
 
                 <div class="form-group">
@@ -547,7 +544,7 @@
                     <textarea id="news-summary" rows="4" placeholder="รายละเอียดเนื้อหา..."></textarea>
                 </div>
 
-                <div class="form-group">
+                <div class="form-group" id="group-image">
                     <label>รูปภาพ (Facebook URL หรือ Local Path)</label>
                     <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                         <input type="text" id="news-image" placeholder="https://..." oninput="previewImage()"
@@ -597,18 +594,16 @@
         }
 
         // ================= Global State =================
-        let SITE_DATA = { news: [], activity: [], manuals: [], plans: [], forms: [], personnel: [], obec: [] };
+        let SITE_DATA = { news: [], activities: [], manuals: [], plans: [], forms: [], personnel: [] };
         let isEditing = false;
         let currentModalCategory = 'news'; // 'news' or 'activity'
 
         // ================= Initialization =================
         document.addEventListener('DOMContentLoaded', async () => {
             initDarkMode();
-            await loadAllData(); // Load JSON first (Legacy)
+            await loadAllData();
             initDatePicker();
-
-            // Temporary Migration Tool
-            checkMigrationStatus();
+            // checkMigrationStatus(); // Disabled migration button for local mode
         });
 
         // ================= Cloud Migration =================
@@ -627,40 +622,113 @@
             headerActions.prepend(btn);
         }
 
-        async function migrateToCloud() {
-            if (!confirm('ยืนยันการอัพโหลดข้อมูลที่มีอยู่ (JSON) ขึ้น Firebase Cloud?\n(ควรรันครั้งเดียว)')) return;
+        // ================= Cloud Migration & CSV Import =================
+        async function handleCSVUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
 
-            try {
-                // Force fetch local JSON data to ensure we have something to upload
-                // (Because SITE_DATA.news might be empty if it tried to load from empty Cloud first)
-                const res = await fetch('assets/data/news.json?v=' + Date.now());
-                const localHealthData = await res.json();
-
-                if (!localHealthData || localHealthData.length === 0) {
-                    alert("ไม่พบข้อมูลเก่ายัง Local JSON");
-                    return;
-                }
-
-                const batch = db.batch(); // Firestore Batch
-                let count = 0;
-
-                // Migrate News & Activities
-                localHealthData.forEach(item => {
-                    const docRef = db.collection('news').doc(item.id.toString());
-                    batch.set(docRef, item);
-                    count++;
-                });
-
-                await batch.commit();
-                alert(`✅ สำเร็จ! อัพโหลด ${count} รายการขึ้นระบบ Cloud แล้ว\n\nรีเฟรชหน้าจอเพื่อดูข้อมูลได้เลย`);
-
-                // Reload
-                await loadAllData();
-
-            } catch (error) {
-                console.error("Migration Failed:", error);
-                alert("❌ เกิดข้อผิดพลาด: " + error.message);
+            if (!confirm(`ยืนยันการนำเข้าข้อมูลจากไฟล์ "${file.name}"?\n(ข้อมูลจะถูกนำขึ้น Cloud ทันที)`)) {
+                input.value = '';
+                return;
             }
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const text = e.target.result;
+                    const lines = text.split('\n');
+                    const headers = lines[0].split(',').map(h => h.trim());
+
+                    // console.log("CSV Headers:", headers);
+
+                    // Map columns: Need 'หัวข้อข่าว', 'Link', 'ประทับเวลา'
+                    // Or simple index mapping if headers match standard Google Form export
+                    // Standard: Timestamp, Title, Link, Image?
+
+                    const batch = db.batch();
+                    let count = 0;
+
+                    // Skip header
+                    for (let i = 1; i < lines.length; i++) {
+                        const line = lines[i].trim();
+                        if (!line) continue;
+
+                        // Handle CSV parsing better (commas in quotes) - Basic split for now
+                        // Assuming simple CSV from Sheets export without complex quoted commas
+                        const cols = line.split(',');
+
+                        // Map specific to user's known format from import_news.py
+                        // timestamp=0, title=1, link=2? No, let's try to be smart or generic.
+                        // import_news.py used DictReader -> needs headers
+                        // Let's assume user keeps header row: "ประทับเวลา,หัวข้อข่าว,Link"
+
+                        let dateStr = "";
+                        let title = "";
+                        let link = "";
+
+                        // Try to find indices
+                        const idxTime = headers.findIndex(h => h.includes('ประทับเวลา') || h.includes('Timestamp'));
+                        const idxTitle = headers.findIndex(h => h.includes('หัวข้อข่าว') || h.includes('Title'));
+                        const idxLink = headers.findIndex(h => h.includes('Link') || h.includes('link'));
+
+                        if (idxTime > -1) dateStr = cols[idxTime] || "";
+                        if (idxTitle > -1) title = cols[idxTitle] || "";
+                        if (idxLink > -1) link = cols[idxLink] || "";
+
+                        // Fallback indices if not found (0, 1, 2)
+                        if (idxTime === -1 && cols.length >= 1) dateStr = cols[0];
+                        if (idxTitle === -1 && cols.length >= 2) title = cols[1];
+                        if (idxLink === -1 && cols.length >= 3) link = cols[2];
+
+                        if (!title) continue;
+
+                        // Format Date
+                        let formattedDate = dateStr;
+                        // Attempt to format if it looks like D/M/YYYY
+                        // import_news.py logic: "24/12/2025" -> "24 ธันวาคม 2568"
+                        // Simple client-side formatter to be safe
+                        if (dateStr.includes('/')) {
+                            const p = dateStr.split(' ')[0].split('/'); // Ignore time
+                            if (p.length === 3) {
+                                const d = parseInt(p[0]);
+                                const m = parseInt(p[1]);
+                                const y = parseInt(p[2]);
+                                const thMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+                                if (m >= 1 && m <= 12) {
+                                    formattedDate = `${d} ${thMonths[m - 1]} ${y + 543}`;
+                                }
+                            }
+                        }
+
+                        const finalId = Date.now() + i; // Unique ID
+                        const item = {
+                            id: finalId,
+                            title: title.replace(/^"|"$/g, ''), // Remove potential quotes
+                            date: formattedDate,
+                            link: link.replace(/^"|"$/g, ''),
+                            category: "news",
+                            image: "", // Default empty
+                            summary: "",
+                            sortOrder: parseThaiDate(formattedDate)
+                        };
+
+                        const docRef = db.collection('news').doc(finalId.toString());
+                        batch.set(docRef, item);
+                        count++;
+                    }
+
+                    await batch.commit();
+                    alert(`✅ นำเข้าข้อมูลสำเร็จ ${count} รายการ!`);
+                    await loadAllData();
+
+                } catch (err) {
+                    console.error("CSV Import Error:", err);
+                    alert("❌ เกิดข้อผิดพลาดในการอ่านไฟล์ CSV: " + err.message);
+                } finally {
+                    input.value = '';
+                }
+            };
+            reader.readAsText(file);
         }
 
         // ================= Dark Mode Logic =================
@@ -677,9 +745,19 @@
             localStorage.setItem('adminDarkMode', isDark);
         }
 
+        function renderAllLists() {
+            renderNewsList('news');
+            renderNewsList('activity'); // Will map to 'activities'
+            renderListEditor('manuals');
+            renderListEditor('plans');
+            renderListEditor('forms');
+
+            renderPersonnelEditor();
+        }
+
         async function loadAllData() {
             try {
-                // 1. Load News & Activities from Firebase Firestore (Cloud)
+                // 1. Load News & Activities from Firebase Firestore (Cloud First)
                 try {
                     // Fetch News
                     const newsSnaps = await db.collection('news').get();
@@ -688,10 +766,10 @@
 
                     // Fetch Activities
                     const actSnaps = await db.collection('activities').get();
-                    SITE_DATA.activity = [];
-                    actSnaps.forEach(doc => SITE_DATA.activity.push({ id: doc.id, ...doc.data() }));
+                    SITE_DATA.activities = []; // Consistent key 'activities'
+                    actSnaps.forEach(doc => SITE_DATA.activities.push({ id: doc.id, ...doc.data() }));
 
-                    console.log(`✅ Loaded ${SITE_DATA.news.length} News, ${SITE_DATA.activity.length} Activities from Cloud`);
+                    console.log(`✅ Loaded ${SITE_DATA.news.length} News, ${SITE_DATA.activities.length} Activities from Cloud`);
 
                     // Sort both
                     const sorter = (a, b) => {
@@ -700,39 +778,36 @@
                         return orderB - orderA;
                     }
                     SITE_DATA.news.sort(sorter);
-                    SITE_DATA.activity.sort(sorter);
+                    SITE_DATA.activities.sort(sorter);
 
                 } catch (e) {
-                    console.error("Firebase Load Error:", e);
-                    SITE_DATA.news = [];
-                    SITE_DATA.activity = [];
+                    console.error("Cloud Fetch Error (News/Activities):", e);
                 }
 
-                // 2. Load other static data from JSON (Legacy)
-                // Also fetch local JSONs as fallback references or for migration
-                const [newsRes, actRes, manualsRes, plansRes, formsRes, personnelRes, obecRes] = await Promise.all([
-                    fetch('assets/data/news.json?v=' + Date.now()).catch(e => null),
-                    fetch('assets/data/activities.json?v=' + Date.now()).catch(e => null),
-                    fetch('assets/data/manuals.json?v=' + Date.now()).catch(e => null),
-                    fetch('assets/data/plans.json?v=' + Date.now()).catch(e => null),
-                    fetch('assets/data/forms.json?v=' + Date.now()).catch(e => null),
-                    fetch('assets/data/personnel.json?v=' + Date.now()).catch(e => null),
-                    fetch('assets/data/obec.json?v=' + Date.now()).catch(e => null)
-                ]);
+                // 2. Fetch Generic Lists from 'site_data' collection
+                const genericLists = ['personnel', 'forms', 'manuals', 'plans', 'logos', 'authority'];
 
-                // Store local reference if cloud empty? 
-                // Actually, for Admin, we prefer Cloud. But let's keep references if needed.
-                if (SITE_DATA.news.length === 0 && newsRes && newsRes.ok) SITE_DATA.news = await newsRes.json();
-                if (SITE_DATA.activity.length === 0 && actRes && actRes.ok) SITE_DATA.activity = await actRes.json();
 
-                if (manualsRes && manualsRes.ok) SITE_DATA.manuals = await manualsRes.json();
-                if (plansRes && plansRes.ok) SITE_DATA.plans = await plansRes.json();
-                if (formsRes && formsRes.ok) SITE_DATA.forms = await formsRes.json();
-                if (personnelRes && personnelRes.ok) SITE_DATA.personnel = await personnelRes.json();
-                if (obecRes && obecRes.ok) SITE_DATA.obec = await obecRes.json();
+                for (const listKey of genericLists) {
+                    try {
+                        const doc = await db.collection('site_data').doc(listKey).get();
+                        if (doc.exists) {
+                            const data = doc.data();
+                            if (data.items && Array.isArray(data.items)) {
+                                SITE_DATA[listKey] = data.items;
+                                console.log(`✅ Loaded ${listKey} from Cloud (${data.items.length} items)`);
+                            }
+                        }
+                    } catch (err) {
+                        console.warn(`Could not load ${listKey} from Cloud (using defaults)`);
+                    }
+                }
+
+                // (Legacy JSON fetch removed to prefer Firestore)
+
 
                 // Initial Render
-                renderNewsList(currentModalCategory);
+                renderAllLists();
 
             } catch (error) {
                 console.error("Load Error:", error);
@@ -764,11 +839,12 @@
 
         // ================= News & Activities Logic =================
         function renderNewsList(type) {
-            // type = 'news' or 'activity'
+            // type = 'news' or 'activity' -> 'news' or 'activities'
+            const dataKey = type === 'activity' ? 'activities' : type;
             const container = document.getElementById(type === 'news' ? 'admin-news-list' : 'admin-activity-list');
 
             // Data is now separated
-            const items = SITE_DATA[type] || [];
+            const items = SITE_DATA[dataKey] || [];
 
             if (items.length === 0) {
                 container.innerHTML = `<div style="text-align:center; padding:20px; color:#999;">ยังไม่มีข้อมูล</div>`;
@@ -811,7 +887,29 @@
             document.getElementById('img-preview').style.display = 'none';
 
             // Show Modal
+            updateModalFields(category);
             document.getElementById('news-modal').classList.add('active');
+        }
+
+        function updateModalFields(category) {
+            const labelLink = document.getElementById('label-link');
+            const inputLink = document.getElementById('news-link');
+            const helpLink = document.getElementById('help-link');
+            const groupImage = document.getElementById('group-image');
+
+            if (category === 'news') {
+                labelLink.innerText = 'ลิงก์เอกสาร / Link (Optional)';
+                inputLink.placeholder = 'วางลิงก์ Google Drive หรือเว็บไซต์ที่เกี่ยวข้อง';
+                helpLink.innerText = 'ใส่ลิงก์ถ้ามีเอกสารแนบ (ไม่บังคับ)';
+                // Hide Image Group for News PR
+                if (groupImage) groupImage.style.display = 'none';
+            } else {
+                labelLink.innerText = 'ลิงก์ Facebook (Link หรือ Embed Code)';
+                inputLink.placeholder = 'วางลิงก์โพสต์ Facebook หรือรหัสฝัง (iframe)';
+                helpLink.innerText = 'ระบบจะดึงรูปและลิงก์จริงให้อัตโนมัติ';
+                // Show Image Group for Activity
+                if (groupImage) groupImage.style.display = 'block';
+            }
         }
 
         function editNews(item) {
@@ -835,7 +933,10 @@
             document.getElementById('news-image').value = item.image;
             document.getElementById('news-summary').value = item.summary || "";
 
+            document.getElementById('news-summary').value = item.summary || "";
+
             previewImage();
+            updateModalFields(itemCat);
             document.getElementById('news-modal').classList.add('active');
         }
 
@@ -954,58 +1055,66 @@
 
         // ================= Save Logic with Auto-Sort =================
         async function saveNewsItem() {
-            const id = document.getElementById('news-id').value;
-            const category = document.getElementById('news-category-hidden').value;
-            const title = document.getElementById('news-title').value;
-            const date = document.getElementById('news-date').value;
-            const linkInput = document.getElementById('news-link').value;
-            const image = document.getElementById('news-image').value;
-            const summary = document.getElementById('news-summary').value;
-
-            if (!title || !date) {
-                alert("กรุณากรอกหัวข้อและวันที่");
-                return;
-            }
-
-            let finalLink = linkInput;
-            let finalId = parseInt(id) || Date.now();
-
-            if (!finalLink) {
-                finalLink = `news-detail.html?id=${finalId}`;
-            }
-
-            const newItem = {
-                id: finalId,
-                title,
-                date,
-                category: category,
-                image,
-                link: finalLink,
-                summary
-            };
-
-            // Calculate SortOrder for new items (based on Date)
-            // For editing, we try to preserve existing order, but since we don't have it handy in variables,
-            // we rely on merge: true to not overwrite it if it exists.
-            if (!isEditing) {
-                newItem.sortOrder = parseThaiDate(date);
-            }
-
             try {
-                // Save to Firestore (Cloud) - based on category
+                console.log("Saving item...");
+                const id = document.getElementById('news-id').value;
+                const category = document.getElementById('news-category-hidden').value || 'news';
+                const title = document.getElementById('news-title').value;
+                const date = document.getElementById('news-date').value;
+                const linkInput = document.getElementById('news-link').value;
+                const summary = document.getElementById('news-summary').value;
+
+                // Image might be undefined if hidden
+                let image = "";
+                const imgInput = document.getElementById('news-image');
+                if (imgInput) image = imgInput.value;
+
+                console.log("Data:", { id, category, title, date });
+
+                if (!title || !date) {
+                    alert("กรุณากรอกหัวข้อและวันที่");
+                    return;
+                }
+
+                let finalLink = linkInput;
+                let finalId = parseInt(id) || Date.now();
+
+                // If News and no link is provided, default to detail page
+                if (category === 'news' && !finalLink) {
+                    finalLink = `news-detail.html?id=${finalId}`;
+                }
+
+                const newItem = {
+                    id: finalId,
+                    title,
+                    date,
+                    category: category,
+                    image: image || "",
+                    link: finalLink || "",
+                    summary: summary || ""
+                };
+
+                // Sort Order Logic (New Items)
+                if (!isEditing) {
+                    newItem.sortOrder = parseThaiDate(date);
+                }
+
+                // Save to Firestore (Cloud)
                 const collectionName = category === 'news' ? 'news' : 'activities';
 
+                console.log(`Writing to ${collectionName}/${finalId}...`);
                 await db.collection(collectionName).doc(finalId.toString()).set(newItem, { merge: true });
 
+                console.log("Save Success!");
                 alert(`✅ บันทึกข้อมูล (${category}) ขึ้น Cloud เรียบร้อย!`);
                 closeModal();
 
-                // Reload data from Cloud to reflect changes
+                // Reload data
                 await loadAllData();
 
             } catch (error) {
-                console.error("Save Error:", error);
-                alert("❌ บันทึกไม่สำเร็จ: " + error.message);
+                console.error("Save Error (Detailed):", error);
+                alert("❌ บันทึกไม่สำเร็จ: " + error.message + "\n(ดู Console เพื่อดูรายละเอียด)");
             }
         }
 
@@ -1202,8 +1311,9 @@
 
         // ================= Shared Helper Functions =================
         function addListItem(type) {
-            if (!SITE_DATA[type]) SITE_DATA[type] = [];
-            SITE_DATA[type].unshift({ title: "", link: "" });
+            const dataKey = type === 'activity' ? 'activities' : type;
+            if (!SITE_DATA[dataKey]) SITE_DATA[dataKey] = [];
+            SITE_DATA[dataKey].unshift({ title: "", link: "" });
             renderListEditor(type);
         }
 
@@ -1214,55 +1324,50 @@
         }
 
         function removeListItem(type, index) {
+            const dataKey = type === 'activity' ? 'activities' : type;
             if (confirm("ลบรายการนี้ใช่หรือไม่?")) {
-                SITE_DATA[type].splice(index, 1);
+                SITE_DATA[dataKey].splice(index, 1);
                 renderListEditor(type);
             }
         }
 
         function updateListItem(type, index, key, value) {
-            SITE_DATA[type][index][key] = value;
+            const dataKey = type === 'activity' ? 'activities' : type;
+            SITE_DATA[dataKey][index][key] = value;
         }
 
         async function saveList(type) {
-            const cleanData = SITE_DATA[type].filter(item => (item.title && item.title.trim() !== "") || (item.name && item.name.trim() !== ""));
-            SITE_DATA[type] = cleanData;
+            const dataKey = type === 'activity' ? 'activities' : type;
+            // Filter invalid empty items
+            const cleanData = SITE_DATA[dataKey].filter(item => {
+                if (type === 'personnel') return item.name && item.name.trim() !== "";
+                return (item.title && item.title.trim() !== "");
+            });
+            SITE_DATA[dataKey] = cleanData;
             renderListEditor(type);
-            await saveToServer(`${type}.json`, cleanData);
-        }
 
-        // ================= Server Save API =================
-        async function saveToServer(filename, data) {
-            // Check for Cloud Environment
-            if (window.location.hostname.includes('vercel.app')) {
-                alert(`⚠️ การแก้ไขข้อมูล "${filename}" ยังไม่รองรับบนระบบ Cloud (รองรับเฉพาะ ข่าว/กิจกรรม)\n\nระบบกำลังพัฒนาส่วนนี้ครับ`);
-                return;
-            }
-
+            // Save to Firestore (Cloud)
             try {
-                const res = await fetch('/api/save-data', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ filename, data })
-                });
+                // We save the entire array as a single document for these simple lists
+                // Structure: collection 'settings' -> doc 'lists' -> field '{type}'
+                // OR: collection '{type}' -> docs (but that's harder to sync with current array structure)
 
-                const result = await res.json();
-                if (result.status === 'success') {
-                    const toast = document.createElement('div');
-                    toast.innerText = `✅ บันทึก ${filename} เรียบร้อย`;
-                    toast.style.cssText = "position:fixed;bottom:20px;right:20px;background:#4caf50;color:white;padding:10px 20px;border-radius:5px;z-index:3000;";
-                    document.body.appendChild(toast);
-                    setTimeout(() => toast.remove(), 2000);
-                } else {
-                    alert('❌ เกิดข้อผิดพลาด: ' + result.message);
-                }
+                // Let's use a 'metadata' collection to store these simple JSON lists
+                // Document ID: 'site_data'
+                // Field: type (e.g. 'personnel', 'forms', etc.)
+
+                const docRef = db.collection('site_data').doc(dataKey);
+                await docRef.set({ items: cleanData }, { merge: true });
+
+                const toast = document.createElement('div');
+                toast.innerText = `✅ บันทึก ${type} ขึ้น Cloud เรียบร้อย`;
+                toast.style.cssText = "position:fixed;bottom:20px;right:20px;background:#4caf50;color:white;padding:10px 20px;border-radius:5px;z-index:3000;";
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 2000);
+
             } catch (error) {
-                if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-                    alert('❌ ฟีเจอร์นี้ ("' + filename + '") ยังไม่รองรับการแก้ไขบน Cloud\n\n(รองรับเฉพาะข่าวและกิจกรรมเท่านั้นในตอนนี้)');
-                } else {
-                    alert('❌ ไม่สามารถเชื่อมต่อ Server ได้ (รัน launch_admin หรือยัง?)');
-                }
-                console.error(error);
+                console.error("Save List Error:", error);
+                alert("❌ บันทึกไม่สำเร็จ: " + error.message);
             }
         }
 

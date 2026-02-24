@@ -8,7 +8,7 @@ from urllib.parse import urlparse, parse_qs
 import cgi
 import shutil
 
-PORT = 8000
+PORT = 4289
 DATA_FILE = 'assets/data/news.json'
 IMAGE_DIR = 'assets/images/news/'
 

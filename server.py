@@ -5,7 +5,7 @@ import os
 import socket
 import sys
 
-PORT = 8080
+PORT = 6395
 DATA_FILE = 'assets/data/news.json'
 
 def check_port_available(port):

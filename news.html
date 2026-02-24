@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+﻿﻿﻿﻿<!DOCTYPE html>
 <html lang="th">
 
 <head>
@@ -12,6 +12,8 @@
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="assets/js/firebase-config.js"></script>
     <style>
         .news-link-item {
@@ -83,13 +85,10 @@
                 const container = document.getElementById('all-news-container');
 
                 try {
-                    // Fetch from Firestore (News Only)
+                    // Fetch from Firestore (News Only) - Cloud First
                     const snapshot = await db.collection('news').get();
-                    const items = [];
-                    snapshot.forEach(doc => items.push({ id: doc.id, ...doc.data() }));
-
-                    // No need to Filter: Collection is pure
-                    const newsItems = items;
+                    const newsItems = [];
+                    snapshot.forEach(doc => newsItems.push({ id: doc.id, ...doc.data() }));
 
                     // Sort: Order > Date (Descending)
                     newsItems.sort((a, b) => {
@@ -98,25 +97,13 @@
                         return orderB - orderA;
                     });
 
-                    // CHECK: If Cloud is empty, try fallback to Local JSON
-                    if (newsItems.length === 0) {
-                        console.warn("Cloud is empty, trying local JSON (news.json)...");
-                        throw new Error("Empty Cloud Data");
-                    }
-
                     renderNews(newsItems);
 
                 } catch (e) {
-                    console.error("Firebase Error:", e);
-                    // Fallback to SITE_DATA logic from main.js if Firebase fails
-                    try {
-                        // Fetch split news.json
-                        const res = await fetch('assets/data/news.json?v=' + Date.now());
-                        const legacyNews = await res.json();
-                        renderNews(legacyNews);
-                    } catch (err) {
-                        container.innerHTML = `<div style="text-align:center; padding:2rem; color:red;">ไม่สามารถโหลดข้อมูลได้: ${e.message}</div>`;
-                    }
+                    console.error("Load Error:", e);
+                    // Fallback to JSON if Cloud fails? (Optional)
+                    // For now, let's keep it pure Cloud as requested, or simple alert
+                    container.innerHTML = `<div style="text-align:center; padding:2rem; color:red;">ไม่สามารถโหลดข้อมูลได้ (Cloud Error): ${e.message}</div>`;
                 }
             });
         })();

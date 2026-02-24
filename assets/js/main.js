@@ -17,6 +17,7 @@ const I18N = {
     nav_home: "หน้าหลัก",
     nav_auth: "อำนาจหน้าที่",
     nav_manual: "คู่มือการปฏิบัติงาน",
+    nav_knowledge: "คลังความรู้",
     nav_plan: "แผนพัฒนาครู",
     nav_news: "ข่าวประชาสัมพันธ์",
     nav_personnel: "บุคลากร",
@@ -25,7 +26,7 @@ const I18N = {
     // Sections
     sec_news: "📰 ข่าวประชาสัมพันธ์ล่าสุด",
     sec_banner: "เว็บไซต์กลุ่มบริหารงานบุคคล",
-    sec_obec: "📚 คู่มือ OBEC AWARD",
+
 
     // Buttons
     btn_view_all_news: "ดูข่าวทั้งหมด",
@@ -50,6 +51,7 @@ const I18N = {
     nav_home: "Home",
     nav_auth: "Authority",
     nav_manual: "Manuals",
+    nav_knowledge: "Knowledge Base",
     nav_plan: "Dev Plans",
     nav_news: "News",
     nav_personnel: "Personnel",
@@ -58,7 +60,7 @@ const I18N = {
     // Sections
     sec_news: "📰 Latest News",
     sec_banner: "Personnel Administration Group",
-    sec_obec: "📚 OBEC Award Manuals",
+
 
     // Buttons
     btn_view_all_news: "View All News",
@@ -89,86 +91,116 @@ if (currentTheme === 'dark') document.body.classList.add('dark-mode');
 document.addEventListener('DOMContentLoaded', async () => {
   await loadComponents();
 
-  // 2. Load Data (Manuals, Plans, Forms, Personnel, OBEC)
-  // NEWS is now fetched from Firestore (async)
   try {
+    // 2. Load Data (Manuals, Plans, Forms, Personnel)
+    // NEWS is now fetched from Firestore (async) if available
 
-    // Initialize Firebase (if not already done via script tag, but main.js runs everywhere)
-    // We need to check if firebase is available. 
-    // If we want main.js to handle firebase, we should inject the SDK in index.html too.
-    // For now, let's assume we maintain hybrid approach:
-    // If on homepage, try fetch firestore if SDK exists? No, main.js is generic.
+    // Helper to fetch News (Cloud -> Fallback JSON)
+    async function fetchNewsData() {
+      let items = [];
+      // Try Cloud First
+      if (typeof db !== 'undefined') {
+        try {
+          const snap = await db.collection('news').get();
+          snap.forEach(doc => items.push({ id: doc.id, ...doc.data() }));
+          // console.log("News loaded from Firestore via main.js");
+          return items;
+        } catch (e) {
+          console.error("Firestore News Fetch Error:", e);
+          // Fallback below
+        }
+      }
 
-    // BETTER APPROACH:
-    // We update index.html to include Firebase SDK (just like news.html).
-    // And here in main.js, we check if `db` exists.
+      // Fallback or if SDK missing
+      try {
+        const res = await fetch('assets/data/news.json').catch(e => null);
+        if (res && res.ok) items = await res.json();
+      } catch (e) { console.error("JSON Fallback Error:", e); }
 
-    // For Manuals/Others (Still JSON)
-    const [manualsRes, plansRes, formsRes, personnelRes, obecRes] = await Promise.all([
-      fetch('assets/data/manuals.json').catch(e => null),
-      fetch('assets/data/plans.json').catch(e => null),
-      fetch('assets/data/forms.json').catch(e => null),
-      fetch('assets/data/personnel.json').catch(e => null),
-      fetch('assets/data/obec.json').catch(e => null)
+      return items;
+    }
+
+    // Helper to fetch Generic Lists from Firestore 'site_data' collection
+    async function fetchSiteList(key) {
+      let items = [];
+      // Try Cloud First
+      if (typeof db !== 'undefined') {
+        try {
+          const doc = await db.collection('site_data').doc(key).get();
+          if (doc.exists) {
+            const data = doc.data();
+            if (data.items && Array.isArray(data.items)) {
+              // console.log(`Loaded ${key} from Firestore`);
+              return data.items;
+            }
+          }
+        } catch (e) {
+          console.warn(`Firestore ${key} Error (using fallback):`, e);
+        }
+      }
+
+      // Fallback to JSON
+      try {
+        const res = await fetch(`assets/data/${key}.json`).catch(e => null);
+        if (res && res.ok) items = await res.json();
+      } catch (e) { console.error(`JSON ${key} Fallback Error:`, e); }
+
+      return items;
+    }
+
+    // For Manuals/Others (Now Hybrid: Cloud -> JSON)
+
+
+    const [newsData, manualsData, knowledgeData, plansData, formsData, personnelData] = await Promise.all([
+      fetchNewsData(),
+      fetchSiteList('manuals'),
+      fetchSiteList('knowledge'),
+      fetchSiteList('plans'),
+      fetchSiteList('forms'),
+      fetchSiteList('personnel')
     ]);
+
+    // Static Navigation Data
+    const navItems = [
+      { text: "หน้าหลัก", link: "index.html" },
+      { text: "อำนาจหน้าที่", link: "authority.html" },
+      { text: "คู่มือการปฏิบัติงาน", link: "manual.html" },
+      { text: "คลังความรู้", link: "knowledge.html" },
+      { text: "แผนพัฒนาครู", link: "plan.html" },
+      { text: "ข่าวประชาสัมพันธ์", link: "news.html" },
+      { text: "บุคลากร", link: "users.html" },
+      { text: "แบบฟอร์ม", link: "forms.html" }
+    ];
 
     // Parse JSON
     const SITE_DATA = {
-      manuals: manualsRes ? await manualsRes.json() : [],
-      plans: plansRes ? await plansRes.json() : [],
-      forms: formsRes ? await formsRes.json() : [],
-      personnel: personnelRes ? await personnelRes.json() : [],
-      obec: obecRes ? await obecRes.json() : [],
-      news: [] // Initial empty, will fill from Firestore
+      nav: navItems,
+      news: newsData,
+      manuals: manualsData,
+      knowledge: knowledgeData,
+      plans: plansData,
+      forms: formsData,
+      personnel: personnelData,
     };
 
     // Make global
     window.SITE_DATA = SITE_DATA;
 
-    // 3. Fetch NEWS from Firestore (if available) or JSON fallback
-    if (typeof db !== 'undefined') {
-      try {
-        const snapshot = await db.collection('news').get();
-        const items = [];
-        snapshot.forEach(doc => items.push({ id: doc.id, ...doc.data() }));
-
-        // Sort Descending
-        items.sort((a, b) => {
-          // Inline parseThaiDate logic or use simple string compare fallback?
-          // Let's use simple ID or SortOrder if available
-          return (b.sortOrder || 0) - (a.sortOrder || 0);
-        });
-
-        // Fallback sort if no sortOrder (using Date string is tricky without helper)
-        if (!items[0]?.sortOrder) {
-          // Quick Date Parse Helper
-          function parseDate(str) {
-            if (!str) return 0;
-            const p = str.split(' ');
-            if (p.length < 3) return 0;
-            return new Date(parseInt(p[2]) - 543, ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"].indexOf(p[1]), parseInt(p[0])).getTime();
-          }
-          items.sort((a, b) => parseDate(b.date) - parseDate(a.date));
+    // Sort News (if loaded)
+    if (SITE_DATA.news && SITE_DATA.news.length > 0) {
+      SITE_DATA.news.sort((a, b) => {
+        // Simple Sort helper
+        function parseDate(str) {
+          if (!str) return 0;
+          const p = str.split(' ');
+          if (p.length < 3) return 0;
+          const thMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+          return new Date(parseInt(p[2]) - 543, thMonths.indexOf(p[1]), parseInt(p[0])).getTime();
         }
-
-        window.SITE_DATA.news = items;
-
-        // CHECK: If Cloud is empty, try fallback to Local JSON
-        if (items.length === 0) {
-          console.warn("Cloud is empty in main.js, trying local JSON...");
-          throw new Error("Empty Cloud Data");
-        }
-
-      } catch (e) {
-        console.warn("Firestore fetch failed in main.js, trying local JSON", e);
-        const newsRes = await fetch('assets/data/news.json');
-        window.SITE_DATA.news = await newsRes.json();
-      }
-    } else {
-      // Fallback for pages without Firebase SDK (unless we add it to all)
-      // Try to fetch local JSON
-      const newsRes = await fetch('assets/data/news.json').catch(e => null);
-      if (newsRes) window.SITE_DATA.news = await newsRes.json();
+        const dateA = a.sortOrder || parseDate(a.date);
+        const dateB = b.sortOrder || parseDate(b.date);
+        return dateB - dateA;
+      });
     }
 
     // 4. Dispatch Event "DataLoaded"
@@ -258,6 +290,7 @@ function renderNavigation() {
         if (item.link === 'index.html') label = I18N.en.nav_home;
         else if (item.link === 'authority.html') label = I18N.en.nav_auth;
         else if (item.link === 'manual.html') label = I18N.en.nav_manual;
+        else if (item.link === 'knowledge.html') label = I18N.en.nav_knowledge;
         else if (item.link === 'plan.html') label = I18N.en.nav_plan;
         else if (item.link === 'news.html') label = I18N.en.nav_news;
         else if (item.link === 'users.html') label = I18N.en.nav_personnel;
@@ -351,30 +384,7 @@ function renderContent() {
         `).join('');
   }
 
-  // 4. หน้า OBEC (ใช้ Logic เดียวกับ Manuals)
-  const obecContainer = document.getElementById('obec-container');
-  if (obecContainer && SITE_DATA.obec) {
-    obecContainer.innerHTML = SITE_DATA.obec.map((item, index) => `
-            <div class="doc-item" style="border-left-color: #673ab7;"> <!-- Deep Purple accent -->
-              <div class="doc-icon">🏆</div>
-              <div class="doc-info">
-                <div class="doc-title">${index + 1}. ${item.title || item.name}</div> 
-              </div>
-              <div class="doc-actions">
-                  <a href="#" onclick="openPopup('${item.link}'); return false;" class="btn-view">
-                      ${I18N[currentLang].btn_view}
-                  </a>
-                  <a href="${convertDriveLink(item.link)}" target="_blank" class="btn-download">
-                      ${I18N[currentLang].btn_download}
-                  </a>
-              </div>
-            </div>
-        `).join('');
 
-    if (SITE_DATA.obec.length === 0) {
-      obecContainer.innerHTML = `<div style="text-align:center; padding:2rem; color:#999;">ยังไม่มีข้อมูล</div>`;
-    }
-  }
 
   // 4. หน้า Authority (อำนาจหน้าที่)
   const authContainer = document.getElementById('authority-list');
@@ -384,6 +394,27 @@ function renderContent() {
                 <span class="auth-icon">✅</span>
                 <span>${item}</span>
             </li>
+        `).join('');
+  }
+
+  // 4.5. หน้า Knowledge (คลังความรู้)
+  const knowledgeContainer = document.getElementById('knowledge-container');
+  if (knowledgeContainer && SITE_DATA.knowledge) {
+    knowledgeContainer.innerHTML = SITE_DATA.knowledge.map((item, index) => `
+            <div class="doc-item" style="border-left-color: #9c27b0;"> <!-- Purple accent for knowledge -->
+              <div class="doc-icon">📚</div>
+              <div class="doc-info">
+                <div class="doc-title">${index + 1}. ${item.title}</div>
+              </div>
+              <div class="doc-actions">
+                  <a href="#" onclick="openPopup('${item.link}'); return false;" class="btn-view">
+                       ${I18N[currentLang].btn_view}
+                  </a>
+                  <a href="${convertDriveLink(item.link)}" target="_blank" class="btn-download">
+                       ${I18N[currentLang].btn_download}
+                  </a>
+              </div>
+            </div>
         `).join('');
   }
 

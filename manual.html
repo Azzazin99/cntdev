@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+﻿﻿﻿﻿<!DOCTYPE html>
 <html lang="th">
 
 <head>
@@ -19,8 +19,10 @@
         <h1 class="section-title" data-i18n="page_manual">📘 คู่มือการปฏิบัติงาน</h1>
 
         <div class="doc-list" id="manual-container">
-            <!-- Forms will be injected here -->
+            <div style="text-align: center; color: #999; padding: 2rem;">⏳ กำลังโหลดข้อมูล...</div>
         </div>
+
+
     </div>
 
     <!-- Logos -->
@@ -28,8 +30,14 @@
     <!-- Footer Component -->
     <div id="footer-placeholder"></div>
 
-    <script src="assets/js/data.js?v=3"></script>
-    <script src="assets/js/main.js?v=3"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="assets/js/firebase-config.js"></script>
+    <script src="assets/js/data.js?v=4"></script>
+    <script src="assets/js/main.js?v=4"></script>
 </body>
 
 </html>
