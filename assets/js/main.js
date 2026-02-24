@@ -327,8 +327,8 @@ function renderContent() {
   // 1. หน้า News (Home) - แสดงแค่ 3 ข่าวล่าสุด (Top 3 Newest)
   const homeNewsContainer = document.getElementById('news-container');
   if (homeNewsContainer && SITE_DATA.news) {
-    // Reverse first to get newest, then slice top 3
-    homeNewsContainer.innerHTML = [...SITE_DATA.news].reverse().slice(0, 3).map(news => `
+    // Slice top 3 (already sorted newest first)
+    homeNewsContainer.innerHTML = SITE_DATA.news.slice(0, 3).map(news => `
             <a href="#" onclick="openPopup('${news.link}'); return false;" class="news-link-item">
                 <div class="news-link-date">📅 ${news.date}</div>
                 <div class="news-link-title">${news.title}</div>
