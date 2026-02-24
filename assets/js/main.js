@@ -20,6 +20,7 @@ const I18N = {
     nav_knowledge: "คลังความรู้",
     nav_plan: "แผนพัฒนาครู",
     nav_news: "ข่าวประชาสัมพันธ์",
+    nav_activities: "ภาพกิจกรรม",
     nav_personnel: "บุคลากร",
     nav_forms: "แบบฟอร์ม",
 
@@ -54,6 +55,7 @@ const I18N = {
     nav_knowledge: "Knowledge Base",
     nav_plan: "Dev Plans",
     nav_news: "News",
+    nav_activities: "Activities",
     nav_personnel: "Personnel",
     nav_forms: "Forms",
 
@@ -168,6 +170,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       { text: "คลังความรู้", link: "knowledge.html" },
       { text: "แผนพัฒนาครู", link: "plan.html" },
       { text: "ข่าวประชาสัมพันธ์", link: "news.html" },
+      { text: "ภาพกิจกรรม", link: "activities.html" },
       { text: "บุคลากร", link: "users.html" },
       { text: "แบบฟอร์ม", link: "forms.html" }
     ];
@@ -293,6 +296,7 @@ function renderNavigation() {
         else if (item.link === 'knowledge.html') label = I18N.en.nav_knowledge;
         else if (item.link === 'plan.html') label = I18N.en.nav_plan;
         else if (item.link === 'news.html') label = I18N.en.nav_news;
+        else if (item.link === 'activities.html') label = I18N.en.nav_activities;
         else if (item.link === 'users.html') label = I18N.en.nav_personnel;
         else if (item.link === 'forms.html') label = I18N.en.nav_forms;
       }
