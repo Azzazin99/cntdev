@@ -153,13 +153,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     // For Manuals/Others (Now Hybrid: Cloud -> JSON)
 
 
-    const [newsData, manualsData, knowledgeData, plansData, formsData, personnelData] = await Promise.all([
+    const [newsData, manualsData, knowledgeData, plansData, formsData, personnelData, authorityData] = await Promise.all([
       fetchNewsData(),
       fetchSiteList('manuals'),
       fetchSiteList('knowledge'),
       fetchSiteList('plans'),
       fetchSiteList('forms'),
-      fetchSiteList('personnel')
+      fetchSiteList('personnel'),
+      fetchSiteList('authority')
     ]);
 
     // Static Navigation Data
@@ -184,6 +185,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       plans: plansData,
       forms: formsData,
       personnel: personnelData,
+      authority: authorityData,
     };
 
     // Make global
