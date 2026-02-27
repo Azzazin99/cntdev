@@ -354,7 +354,7 @@ function renderContent() {
             <div class="org-connector">
                 <div class="org-card">
                     <div class="org-img-wrapper">
-                        <img src="${person.image}" alt="${person.name}" class="org-img">
+                        <img src="${convertDriveLink(person.image)}" alt="${person.name}" class="org-img">
                     </div>
                     <div class="org-info">
                         <h3 class="org-name">${person.name}</h3>
