@@ -168,7 +168,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       { text: "หน้าหลัก", link: "index.html" },
       { text: "อำนาจหน้าที่", link: "authority.html" },
       { text: "คู่มือการปฏิบัติงาน", link: "manual.html" },
-      { text: "คลังความรู้", link: "knowledge.html" },
       { text: "แผนพัฒนาครู", link: "plan.html" },
       { text: "ข่าวประชาสัมพันธ์", link: "news.html" },
       { text: "ภาพกิจกรรม", link: "activities.html" },
