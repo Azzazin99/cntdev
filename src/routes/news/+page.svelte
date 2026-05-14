@@ -37,7 +37,7 @@
 					<div class="timeline-content">
 						<div class="timeline-date">📅 {item.date}</div>
 						<h3>{item.title}</h3>
-						<a href="#" on:click|preventDefault={() => openPopup(item.link)} class="btn-view" style="display: inline-block; margin-top: 0.5rem;">👁️ เปิดอ่าน</a>
+						<a href={item.link || '/news'} on:click|preventDefault={() => openPopup(item.link)} class="btn-view" style="display: inline-block; margin-top: 0.5rem;">👁️ เปิดอ่าน</a>
 					</div>
 				</div>
 			{/each}

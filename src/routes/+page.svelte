@@ -1,38 +1,76 @@
 <script>
 	import { onMount } from 'svelte';
 	
-	// State for news data
+	// State for data
 	let news = [];
+	let activities = [];
 	let loading = true;
 	
-	// Load news from JSON file
+	// Load data from JSON files
 	onMount(async () => {
 		try {
-			const res = await fetch('/assets/data/news.json');
-			if (res.ok) {
-				const data = await res.json();
-				// Sort by date (newest first)
-				news = data.slice(0, 3);
+			const [newsRes, actRes] = await Promise.all([
+				fetch('/assets/data/news.json'),
+				fetch('/assets/data/activities.json')
+			]);
+
+			if (newsRes.ok) {
+				const newsData = await newsRes.json();
+				news = newsData.slice(0, 3);
+			}
+
+			if (actRes.ok) {
+				const actData = await actRes.json();
+				activities = actData.slice(0, 4); // Show 4 activities on home page
 			}
 		} catch (e) {
-			console.error('Error loading news:', e);
+			console.error('Error loading data:', e);
 		} finally {
 			loading = false;
 		}
 	});
 	
 	function openPopup(url) {
+		if (!url || url === '#') return;
 		const width = 1000;
 		const height = 800;
 		const left = (screen.width - width) / 2;
 		const top = (screen.height - height) / 2;
-		window.open(url, 'DocumentView', `width=${width},height=${height},top=${top},left=${top},scrollbars=yes,resizable=yes`);
+		window.open(url, 'DocumentView', `width=${width},height=${height},top=${top},left=${left},scrollbars=yes,resizable=yes`);
 	}
 </script>
 
 <div class="container grid-layout">
 	<!-- Left Content -->
 	<main>
+		<!-- Activities Section FIRST (Below Navbar) -->
+		<section>
+			<h2 class="section-title">📸 ภาพกิจกรรม</h2>
+			
+			{#if loading}
+				<p>กำลังโหลด...</p>
+			{:else if activities.length > 0}
+				<div class="activities-home-grid">
+					{#each activities as item}
+						<button class="activity-home-card" on:click={() => openPopup(item.link)} aria-label="ดูรายละเอียด {item.title}">
+							<div class="activity-home-img">
+								<img src={item.image} alt={item.title}>
+							</div>
+							<div class="activity-home-content">
+								<div class="activity-home-date">📅 {item.date}</div>
+								<h3 class="activity-home-title">{item.title}</h3>
+							</div>
+						</button>
+					{/each}
+				</div>
+				<div style="text-align: center; margin-top: 2rem;">
+					<a href="/activities" class="btn-download" style="padding: 10px 20px; border: 1px solid var(--primary-purple); border-radius: 5px;">ดูภาพกิจกรรมทั้งหมด</a>
+				</div>
+			{:else}
+				<p>ไม่มีภาพกิจกรรม</p>
+			{/if}
+		</section>
+
 		<!-- News Section -->
 		<section>
 			<h2 class="section-title">📰 ข่าวประชาสัมพันธ์ล่าสุด</h2>
@@ -43,7 +81,7 @@
 				<div class="news-list" style="display: flex; flex-direction: column;">
 					{#each news as item}
 						<a 
-							href="#" 
+							href={item.link || '/news'} 
 							on:click|preventDefault={() => openPopup(item.link)} 
 							class="news-link-item"
 						>
@@ -63,7 +101,7 @@
 		<!-- Banner Section -->
 		<section class="banner-section" style="height: auto; min-height: auto;">
 			<a href="https://sites.google.com/view/cntpa" target="_blank" style="display: block;">
-				<img src="https://iud.cnt.go.th/source/1.gif?1740373368612" alt="Banner" style="width: 100%; height: auto; object-fit: contain;">
+				<img src="https://cnt.go.th/imh/uploads/77cac636e8e96afe0c855785181b56de.png" alt="Banner" style="width: 100%; height: auto; object-fit: contain;">
 			</a>
 		</section>
 

@@ -37,7 +37,7 @@
 						<div class="doc-title">{index + 1}. {item.title}</div>
 					</div>
 					<div class="doc-actions">
-						<a href="#" on:click|preventDefault={() => openPopup(item.link)} class="btn-view">👁️ เปิดอ่าน</a>
+						<a href={item.link || '/knowledge'} on:click|preventDefault={() => openPopup(item.link)} class="btn-view">👁️ เปิดอ่าน</a>
 						<a href={convertDriveLink(item.link)} target="_blank" class="btn-download">⬇️ ดาวน์โหลด</a>
 					</div>
 				</div>

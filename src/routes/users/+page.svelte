@@ -79,9 +79,9 @@
 		box-shadow: 0 4px 12px var(--shadow);
 		text-align: center;
 		transition: transform 0.3s;
-		border-top: 4px solid var(--primary-purple);
 		width: 100%;
-		max-width: 350px;
+		max-width: 320px;
+		border-top: none !important;
 	}
 	
 	.org-card:hover {
@@ -89,12 +89,12 @@
 	}
 	
 	.org-img-wrapper {
-		width: 180px;
-		height: 180px;
-		margin: 2.5rem auto 1.2rem;
-		border-radius: 50%;
+		width: 100%;
+		height: 400px;
+		margin: 0;
+		border-radius: 0;
 		overflow: hidden;
-		border: 3px solid var(--primary-purple-light);
+		border: none;
 	}
 	
 	.org-img {
@@ -104,29 +104,34 @@
 	}
 	
 	.org-info {
-		padding: 0 1.5rem 2rem;
+		padding: 1.2rem 1rem 1.5rem;
 	}
 	
 	.org-name {
-		font-size: 1.1rem;
+		font-size: clamp(1rem, 4vw, 1.25rem);
 		font-weight: 700;
 		color: var(--primary-purple);
 		margin-bottom: 0.25rem;
 	}
 	
 	.org-position {
-		font-size: 0.95rem;
+		font-size: clamp(0.85rem, 3.5vw, 1rem);
 		color: var(--text-gray);
 		margin-bottom: 1rem;
 		font-weight: 500;
+		line-height: 1.4;
 	}
 	
 	.org-phone {
 		font-size: 0.9rem;
 		background: var(--bg-gray);
-		padding: 0.5rem;
+		padding: 0.6rem 1rem;
 		border-radius: 6px;
 		display: inline-block;
 		color: var(--text-dark);
+		min-height: 44px;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
 	}
 </style>

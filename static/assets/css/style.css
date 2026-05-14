@@ -444,7 +444,6 @@ img {
   box-shadow: 0 4px 12px var(--shadow);
   text-align: center;
   transition: transform 0.3s;
-  border-top: 4px solid var(--primary-purple);
 }
 
 .personnel-card:hover {
@@ -457,7 +456,6 @@ img {
   margin: 2rem auto 1rem;
   border-radius: 50%;
   overflow: hidden;
-  border: 3px solid var(--primary-purple-light);
 }
 
 .personnel-img {
@@ -864,6 +862,7 @@ img {
   justify-content: center;
   border-radius: 50%;
   transition: background 0.3s;
+  -webkit-user-select: none;
   user-select: none;
   z-index: 10002;
 }

@@ -32,13 +32,13 @@
 	{:else if activities.length > 0}
 		<div class="activities-grid">
 			{#each activities as item}
-				<div class="activity-card">
+				<button class="activity-card" on:click={() => openPopup(item.link)} aria-label="ดูรายละเอียด {item.title}">
 					<img src={item.image} alt={item.title} class="activity-img">
 					<div class="activity-content">
 						<div class="activity-date">📅 {item.date}</div>
 						<h3>{item.title}</h3>
 					</div>
-				</div>
+				</button>
 			{/each}
 		</div>
 	{:else}
@@ -58,6 +58,16 @@
 		border-radius: 12px;
 		overflow: hidden;
 		box-shadow: 0 2px 8px var(--shadow);
+		border: none;
+		cursor: pointer;
+		text-align: left;
+		width: 100%;
+		padding: 0;
+		transition: transform 0.3s ease;
+	}
+	
+	.activity-card:hover {
+		transform: translateY(-5px);
 	}
 	
 	.activity-img {

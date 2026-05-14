@@ -9,8 +9,8 @@ import cgi
 import shutil
 
 PORT = 4289
-DATA_FILE = 'assets/data/news.json'
-IMAGE_DIR = 'assets/images/news/'
+DATA_FILE = 'static/assets/data/news.json'
+IMAGE_DIR = 'static/assets/images/news/'
 
 class AdminHandler(http.server.SimpleHTTPRequestHandler):
     def do_POST(self):
@@ -28,32 +28,37 @@ class AdminHandler(http.server.SimpleHTTPRequestHandler):
                 category = form.getvalue('category')
                 summary = form.getvalue('summary')
                 date_str = form.getvalue('date') # Format YYYY-MM-DD
+                target_file = form.getvalue('target', 'news.json') # Default to news.json
                 
                 # Convert Date format from YYYY-MM-DD to DD Month YYYY (Thai) if needed
-                # For now, let's keep simplistic or do simple mapping
                 formatted_date = self.format_thai_date(date_str)
 
                 # 3. Handle Image Upload
                 image_path = ""
+                # Determine image directory based on target
+                current_image_dir = 'static/assets/images/news/'
+                if 'activities' in target_file:
+                    current_image_dir = 'static/assets/images/activity/'
+
                 if 'image' in form and form['image'].filename:
                     image_file = form['image']
                     original_filename = os.path.basename(image_file.filename)
                     # Create unique filename: timestamp_filename
                     timestamp = int(datetime.datetime.now().timestamp())
                     new_filename = f"{timestamp}_{original_filename}"
-                    save_path = os.path.join(IMAGE_DIR, new_filename)
+                    save_path = os.path.join(current_image_dir, new_filename)
                     
                     # Ensure directory exists
-                    os.makedirs(IMAGE_DIR, exist_ok=True)
+                    os.makedirs(current_image_dir, exist_ok=True)
                     
                     # Write file
                     with open(save_path, 'wb') as f:
                         f.write(image_file.file.read())
                     
-                    image_path = f"{IMAGE_DIR}{new_filename}"
+                    image_path = save_path
                 else:
-                    # Default image if none uploaded (e.g. for News)
-                    image_path = "assets/images/logos/moe.png"
+                    # Default image if none uploaded
+                    image_path = "static/assets/images/logos/moe.png"
 
                 # 4. Update JSON Data
                 new_entry = {
@@ -62,24 +67,25 @@ class AdminHandler(http.server.SimpleHTTPRequestHandler):
                     "title": title,
                     "category": category,
                     "summary": summary,
-                    "image": image_path,
-                    "link": "#", # Todo: Generate detail page link or use a placeholder
+                    "image": image_path.replace('static/', ''),
+                    "link": form.getvalue('link', '#'),
                     "facebookLink": "",
                     "content": "",
                     "gallery": []
                 }
                 
                 # Read existing data
+                current_data_file = os.path.join('static/assets/data', target_file)
                 current_data = []
-                if os.path.exists(DATA_FILE):
-                    with open(DATA_FILE, 'r', encoding='utf-8') as f:
+                if os.path.exists(current_data_file):
+                    with open(current_data_file, 'r', encoding='utf-8') as f:
                         current_data = json.load(f)
                 
-                # Append new entry (beginning or end? usually newest first)
+                # Append new entry
                 current_data.insert(0, new_entry) # Add to top
                 
                 # Save back
-                with open(DATA_FILE, 'w', encoding='utf-8') as f:
+                with open(current_data_file, 'w', encoding='utf-8') as f:
                     json.dump(current_data, f, ensure_ascii=False, indent=4)
 
                 # 5. Respond
@@ -114,10 +120,10 @@ class AdminHandler(http.server.SimpleHTTPRequestHandler):
                     raise ValueError("Invalid path")
 
                 # 3. Save File
-                file_path = os.path.join('assets/data', filename)
+                file_path = os.path.join('static/assets/data', filename)
                 
                 # Ensure directory exists
-                os.makedirs('assets/data', exist_ok=True)
+                os.makedirs('static/assets/data', exist_ok=True)
                 
                 with open(file_path, 'w', encoding='utf-8') as f:
                     json.dump(data, f, ensure_ascii=False, indent=4)
@@ -161,7 +167,7 @@ class AdminHandler(http.server.SimpleHTTPRequestHandler):
                     ext = '.webp'
                 
                 filename = f"activity_{timestamp}{ext}"
-                save_dir = 'assets/images/activity'
+                save_dir = 'static/assets/images/activity'
                 save_path = os.path.join(save_dir, filename)
                 
                 # 3. Ensure directory exists
@@ -182,13 +188,55 @@ class AdminHandler(http.server.SimpleHTTPRequestHandler):
                 self.end_headers()
                 response = {
                     "status": "success", 
-                    "localPath": save_path,
+                    "localPath": save_path.replace('static/', ''),
                     "message": f"ดาวน์โหลดรูปสำเร็จ: {filename}"
                 }
                 self.wfile.write(json.dumps(response).encode('utf-8'))
 
             except Exception as e:
                 print(f"Download Error: {e}")
+                self.send_response(500)
+                self.end_headers()
+                self.wfile.write(json.dumps({"status": "error", "message": str(e)}).encode('utf-8'))
+
+        elif self.path == '/api/delete-item':
+            try:
+                # 1. Read JSON payload
+                content_length = int(self.headers['Content-Length'])
+                post_data = self.rfile.read(content_length)
+                payload = json.loads(post_data.decode('utf-8'))
+
+                item_id = payload.get('id')
+                filename = payload.get('filename') # e.g., 'news.json'
+
+                if not item_id or not filename:
+                    raise ValueError("Missing ID or filename")
+
+                file_path = os.path.join('static/assets/data', filename)
+                
+                if not os.path.exists(file_path):
+                    raise ValueError(f"File {filename} not found")
+
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+
+                # Filter out the item
+                new_data = [item for item in data if str(item.get('id')) != str(item_id)]
+                
+                if len(new_data) == len(data):
+                    raise ValueError(f"Item with ID {item_id} not found")
+
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    json.dump(new_data, f, ensure_ascii=False, indent=4)
+
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                response = {"status": "success", "message": f"ลบข้อมูล ID {item_id} เรียบร้อยแล้ว"}
+                self.wfile.write(json.dumps(response).encode('utf-8'))
+
+            except Exception as e:
+                print(f"Delete Error: {e}")
                 self.send_response(500)
                 self.end_headers()
                 self.wfile.write(json.dumps({"status": "error", "message": str(e)}).encode('utf-8'))
@@ -216,5 +264,5 @@ class AdminHandler(http.server.SimpleHTTPRequestHandler):
 print(f"Admin Server running at http://localhost:{PORT}")
 print(f"Open http://localhost:{PORT}/admin.html to manage content")
 
-with socketserver.TCPServer(("", PORT), AdminHandler) as httpd:
+with socketserver.TCPServer(("0.0.0.0", PORT), AdminHandler) as httpd:
     httpd.serve_forever()

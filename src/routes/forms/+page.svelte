@@ -37,7 +37,7 @@
 						<div class="doc-title">{index + 1}. {form.title || form.name}</div>
 					</div>
 					<div class="doc-actions">
-						<a href="#" on:click|preventDefault={() => openPopup(form.link)} class="btn-view">👁️ เปิดอ่าน</a>
+						<a href={form.link || '/forms'} on:click|preventDefault={() => openPopup(form.link)} class="btn-view">👁️ เปิดอ่าน</a>
 						<a href={convertDriveLink(form.link)} target="_blank" class="btn-download">⬇️ ดาวน์โหลด</a>
 					</div>
 				</div>

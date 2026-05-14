@@ -3,9 +3,9 @@
 	import Header from '$components/Header.svelte';
 	import Footer from '$components/Footer.svelte';
 	import { onMount } from 'svelte';
+	export let data;
 	
-	// Navigation data
-	const navItems = [
+	const baseNavItems = [
 		{ text: 'หน้าหลัก', link: '/' },
 		{ text: 'บุคลากร', link: '/users' },
 		{ text: 'อำนาจหน้าที่', link: '/authority' },
@@ -13,7 +13,18 @@
 		{ text: 'แผนพัฒนาครู', link: '/plan' },
 		{ text: 'ข่าวประชาสัมพันธ์', link: '/news' },
 		{ text: 'ภาพกิจกรรม', link: '/activities' },
-		{ text: 'แบบฟอร์ม', link: '/forms' }
+		{ text: 'แบบฟอร์ม', link: '/forms' },
+		{ text: 'คลังเกียรติบัตร', link: '/certificates' }
+	];
+
+	$: userEmail = data?.user?.email || '';
+	$: userRole = data?.user?.role || null;
+	$: isLocal = !!data?.isLocal;
+	$: canAccessAdmin = isLocal && (userRole === 'admin' || userRole === 'editor');
+	$: navItems = [
+		...baseNavItems,
+		...(canAccessAdmin ? [{ text: 'จัดการระบบ', link: '/admin' }] : []),
+		...(isLocal ? (!userRole ? [{ text: 'เข้าสู่ระบบ', link: '/login' }] : [{ text: 'ออกจากระบบ', link: '/logout' }]) : [])
 	];
 	
 	// Theme management

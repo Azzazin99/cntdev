@@ -6,6 +6,8 @@ __pycache__/
 .venv/
 env/
 .env
-.vercel
+.vercel/
 .env*.local
 serviceAccountKey.json
+.svelte-kit/
+dist/
