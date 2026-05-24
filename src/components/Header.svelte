@@ -48,16 +48,14 @@
 					</a>
 				</li>
 			{/each}
-			<li>
-				<button class="theme-toggle" on:click={toggleTheme} aria-label="Toggle theme">
-					{#if currentTheme === 'dark'}
-						☀️
-					{:else}
-						🌙
-					{/if}
-				</button>
-			</li>
 		</ul>
+		<button class="theme-toggle desktop-theme-toggle" on:click={toggleTheme} aria-label="Toggle theme">
+			{#if currentTheme === 'dark'}
+				☀️
+			{:else}
+				🌙
+			{/if}
+		</button>
 	</div>
 </nav>
 
@@ -146,6 +144,10 @@
 
 	.theme-toggle:hover {
 		opacity: 0.7;
+	}
+
+	.desktop-theme-toggle {
+		flex-shrink: 0;
 	}
 
 	/* Mobile Overlay */
@@ -252,7 +254,8 @@
 			display: flex;
 		}
 
-		.desktop-menu {
+		.desktop-menu,
+		.desktop-theme-toggle {
 			display: none;
 		}
 

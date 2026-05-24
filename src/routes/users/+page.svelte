@@ -1,20 +1,13 @@
 <script>
 	import { onMount } from 'svelte';
+	import { fetchSiteList } from '$lib/fetchNews';
 	
 	let personnel = [];
 	let loading = true;
 	
 	onMount(async () => {
-		try {
-			const res = await fetch('/assets/data/personnel.json');
-			if (res.ok) {
-				personnel = await res.json();
-			}
-		} catch (e) {
-			console.error('Error loading personnel:', e);
-		} finally {
-			loading = false;
-		}
+		personnel = await fetchSiteList('personnel');
+		loading = false;
 	});
 	
 	function convertDriveLink(url) {

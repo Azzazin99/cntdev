@@ -1,21 +1,14 @@
 <script>
 	import { onMount } from 'svelte';
+	import { fetchSiteList } from '$lib/fetchNews';
 	import { convertDriveLink, openPopup } from '$lib/utils';
 	
 	let forms = [];
 	let loading = true;
 	
 	onMount(async () => {
-		try {
-			const res = await fetch('/assets/data/forms.json');
-			if (res.ok) {
-				forms = await res.json();
-			}
-		} catch (e) {
-			console.error('Error loading forms:', e);
-		} finally {
-			loading = false;
-		}
+		forms = await fetchSiteList('forms');
+		loading = false;
 	});
 </script>
 

@@ -1,21 +1,14 @@
 <script>
 	import { onMount } from 'svelte';
+	import { fetchSiteList } from '$lib/fetchNews';
 	import { convertDriveLink, openPopup } from '$lib/utils';
 	
 	let manuals = [];
 	let loading = true;
 	
 	onMount(async () => {
-		try {
-			const res = await fetch('/assets/data/manuals.json');
-			if (res.ok) {
-				manuals = await res.json();
-			}
-		} catch (e) {
-			console.error('Error loading manuals:', e);
-		} finally {
-			loading = false;
-		}
+		manuals = await fetchSiteList('manuals');
+		loading = false;
 	});
 </script>
 

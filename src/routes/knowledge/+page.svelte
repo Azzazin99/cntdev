@@ -1,21 +1,14 @@
 <script>
 	import { onMount } from 'svelte';
+	import { fetchSiteList } from '$lib/fetchNews';
 	import { convertDriveLink, openPopup } from '$lib/utils';
 	
 	let knowledge = [];
 	let loading = true;
 	
 	onMount(async () => {
-		try {
-			const res = await fetch('/assets/data/knowledge.json');
-			if (res.ok) {
-				knowledge = await res.json();
-			}
-		} catch (e) {
-			console.error('Error loading knowledge:', e);
-		} finally {
-			loading = false;
-		}
+		knowledge = await fetchSiteList('knowledge');
+		loading = false;
 	});
 </script>
 

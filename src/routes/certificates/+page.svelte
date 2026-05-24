@@ -17,11 +17,22 @@
 	
 	const itemsPerPage = 10;
 	let currentPage = 1;
-	
-	// Google Sheet CSV URL for certificates
-	const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTRZKKSC38bKraDDdDE5hjVGQtbr1e0inwEK63m73tJAnYaNNo_AbxbGX_IF__eEwRC7_JGB0-dQiDP/pub?output=csv";
+
+	const FALLBACK_SHEET_URL =
+		'https://docs.google.com/spreadsheets/d/e/2PACX-1vTRZKKSC38bKraDDdDE5hjVGQtbr1e0inwEK63m73tJAnYaNNo_AbxbGX_IF__eEwRC7_JGB0-dQiDP/pub?output=csv';
+
+	let sheetUrl = FALLBACK_SHEET_URL;
 	
 	onMount(async () => {
+		try {
+			const configRes = await fetch('/api/certificates/config');
+			if (configRes.ok) {
+				const config = await configRes.json();
+				if (config.sheetUrl) sheetUrl = config.sheetUrl;
+			}
+		} catch (e) {
+			console.warn('Could not load certificates config, using fallback URL', e);
+		}
 		await loadData();
 	});
 	
@@ -30,7 +41,7 @@
 		error = null;
 		
 		try {
-			const res = await fetch(GOOGLE_SHEET_CSV_URL);
+			const res = await fetch(sheetUrl);
 			if (res.ok) {
 				const text = await res.text();
 				certificates = parseCSV(text);

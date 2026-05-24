@@ -36,6 +36,17 @@ export function parseThaiDate(dateStr) {
   return new Date(parseInt(p[2]) - 543, thMonths.indexOf(p[1]), parseInt(p[0])).getTime();
 }
 
+/** Thai date string → YYYY-MM-DD for input type="date" */
+export function thaiDateToInput(thaiStr) {
+  const t = parseThaiDate(thaiStr);
+  if (!t) return '';
+  const d = new Date(t);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 /**
  * Sort items by date (newest first)
  */

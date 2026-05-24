@@ -23,15 +23,12 @@
 		</div>
 	</section>
 
-	<!-- Footer Content -->
 	<div class="footer-content">
-		<div class="footer-section">
+		<div class="footer-info">
 			<h3>กลุ่มพัฒนาครูและบุคลากรทางการศึกษา</h3>
 			<p>ถนนวิเชียรปราการ ตำบลในเมือง อำเภอเมือง จังหวัดชัยนาท 17000</p>
 			<p>โทรศัพท์: 056-411639 ต่อ 11</p>
-		</div>
-		<div class="footer-section">
-			<p>&copy; 2025 กลุ่มพัฒนาครูและบุคลากรทางการศึกษา สพป.ชัยนาท</p>
+			<p class="footer-copyright">&copy; 2025 กลุ่มพัฒนาครูและบุคลากรทางการศึกษา สพป.ชัยนาท</p>
 		</div>
 	</div>
 </footer>
@@ -45,23 +42,37 @@
 	}
 
 	.footer-content {
-		max-width: 1200px;
+		max-width: 720px;
 		margin: 0 auto;
-		padding: 0 20px;
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 20px;
-		text-align: left;
+		padding: 1.25rem 20px 0;
 	}
 
-	.footer-section h3 {
-		margin-bottom: 10px;
+	.footer-info {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.4rem;
+		text-align: center;
+	}
+
+	.footer-info h3 {
+		margin: 0 0 0.25rem;
 		color: var(--accent-yellow, #ffc107);
+		font-size: 1.1rem;
+		line-height: 1.4;
 	}
 
-	.footer-section p {
-		margin: 5px 0;
-		line-height: 1.5;
+	.footer-info p {
+		margin: 0;
+		line-height: 1.55;
+		font-size: 0.95rem;
+	}
+
+	.footer-copyright {
+		margin-top: 0.75rem !important;
+		font-size: 0.9rem;
+		opacity: 0.9;
+		width: 100%;
 	}
 
 	.logo-section {
@@ -101,10 +112,6 @@
 	}
 
 	@media (max-width: 768px) {
-		.footer-content {
-			grid-template-columns: 1fr;
-		}
-
 		.logo-grid {
 			grid-template-columns: repeat(2, 1fr) !important;
 			gap: 20px !important;
@@ -112,6 +119,14 @@
 
 		.logo-link img {
 			max-height: 80px !important;
+		}
+
+		.footer-info h3 {
+			font-size: 1rem;
+		}
+
+		.footer-info p {
+			font-size: 0.9rem;
 		}
 	}
 </style>

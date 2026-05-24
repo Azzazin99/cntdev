@@ -1,22 +1,14 @@
 <script>
 	import { onMount } from 'svelte';
-	import { sortByDate, openPopup } from '$lib/utils';
+	import { openPopup } from '$lib/utils';
+	import { fetchActivities } from '$lib/fetchNews';
 	
 	let activities = [];
 	let loading = true;
 	
 	onMount(async () => {
-		try {
-			const res = await fetch('/assets/data/activities.json');
-			if (res.ok) {
-				const data = await res.json();
-				activities = sortByDate(data);
-			}
-		} catch (e) {
-			console.error('Error loading activities:', e);
-		} finally {
-			loading = false;
-		}
+		activities = await fetchActivities();
+		loading = false;
 	});
 </script>
 
@@ -45,45 +37,3 @@
 		<p>ไม่มีภาพกิจกรรม</p>
 	{/if}
 </div>
-
-<style>
-	.activities-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-		gap: 1.5rem;
-	}
-	
-	.activity-card {
-		background: var(--white);
-		border-radius: 12px;
-		overflow: hidden;
-		box-shadow: 0 2px 8px var(--shadow);
-		border: none;
-		cursor: pointer;
-		text-align: left;
-		width: 100%;
-		padding: 0;
-		transition: transform 0.3s ease;
-	}
-	
-	.activity-card:hover {
-		transform: translateY(-5px);
-	}
-	
-	.activity-img {
-		width: 100%;
-		height: 200px;
-		object-fit: cover;
-		object-position: top center;
-	}
-	
-	.activity-content {
-		padding: 1rem 1.5rem;
-	}
-	
-	.activity-date {
-		font-size: 0.85rem;
-		color: var(--text-gray);
-		margin-bottom: 0.5rem;
-	}
-</style>

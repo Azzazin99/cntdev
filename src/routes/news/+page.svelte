@@ -1,22 +1,14 @@
 <script>
 	import { onMount } from 'svelte';
-	import { sortByDate, openPopup } from '$lib/utils';
+	import { openPopup } from '$lib/utils';
+	import { fetchNews } from '$lib/fetchNews';
 	
 	let news = [];
 	let loading = true;
 	
 	onMount(async () => {
-		try {
-			const res = await fetch('/assets/data/news.json');
-			if (res.ok) {
-				const data = await res.json();
-				news = sortByDate(data);
-			}
-		} catch (e) {
-			console.error('Error loading news:', e);
-		} finally {
-			loading = false;
-		}
+		news = await fetchNews();
+		loading = false;
 	});
 </script>
 

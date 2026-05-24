@@ -1,33 +1,16 @@
 <script>
 	import { onMount } from 'svelte';
+	import { fetchActivities, fetchNews } from '$lib/fetchNews';
 	
-	// State for data
 	let news = [];
 	let activities = [];
 	let loading = true;
 	
-	// Load data from JSON files
 	onMount(async () => {
-		try {
-			const [newsRes, actRes] = await Promise.all([
-				fetch('/assets/data/news.json'),
-				fetch('/assets/data/activities.json')
-			]);
-
-			if (newsRes.ok) {
-				const newsData = await newsRes.json();
-				news = newsData.slice(0, 3);
-			}
-
-			if (actRes.ok) {
-				const actData = await actRes.json();
-				activities = actData.slice(0, 4); // Show 4 activities on home page
-			}
-		} catch (e) {
-			console.error('Error loading data:', e);
-		} finally {
-			loading = false;
-		}
+		const [newsData, actData] = await Promise.all([fetchNews(), fetchActivities()]);
+		news = newsData.slice(0, 3);
+		activities = actData.slice(0, 4);
+		loading = false;
 	});
 	
 	function openPopup(url) {

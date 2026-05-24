@@ -3,6 +3,8 @@
 	import Header from '$components/Header.svelte';
 	import Footer from '$components/Footer.svelte';
 	import { onMount } from 'svelte';
+	import { page } from '$app/stores';
+	import { currentTheme, initTheme, toggleTheme } from '$lib/theme';
 	export let data;
 	
 	const baseNavItems = [
@@ -19,29 +21,19 @@
 
 	$: userEmail = data?.user?.email || '';
 	$: userRole = data?.user?.role || null;
-	$: isLocal = !!data?.isLocal;
-	$: canAccessAdmin = isLocal && (userRole === 'admin' || userRole === 'editor');
+	$: canAccessAdmin = userRole === 'admin' || userRole === 'editor';
+	$: onAdminPage = $page.url.pathname.startsWith('/admin');
 	$: navItems = [
 		...baseNavItems,
 		...(canAccessAdmin ? [{ text: 'จัดการระบบ', link: '/admin' }] : []),
-		...(isLocal ? (!userRole ? [{ text: 'เข้าสู่ระบบ', link: '/login' }] : [{ text: 'ออกจากระบบ', link: '/logout' }]) : [])
+		...(!userRole
+			? [{ text: 'เข้าสู่ระบบ', link: '/login' }]
+			: onAdminPage
+				? []
+				: [{ text: 'ออกจากระบบ', link: '/logout' }])
 	];
 	
-	// Theme management
-	let currentTheme = 'light';
-	
-	onMount(() => {
-		currentTheme = localStorage.getItem('site_theme') || 'light';
-		if (currentTheme === 'dark') {
-			document.body.classList.add('dark-mode');
-		}
-	});
-	
-	function toggleTheme() {
-		document.body.classList.toggle('dark-mode');
-		currentTheme = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
-		localStorage.setItem('site_theme', currentTheme);
-	}
+	onMount(initTheme);
 </script>
 
 <svelte:head>
@@ -53,7 +45,7 @@
 </svelte:head>
 
 <div class="site-wrapper">
-	<Header {navItems} {toggleTheme} {currentTheme} />
+	<Header {navItems} {toggleTheme} currentTheme={$currentTheme} />
 	
 	<main>
 		<slot />

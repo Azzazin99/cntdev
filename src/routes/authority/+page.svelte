@@ -1,20 +1,13 @@
 <script>
 	import { onMount } from 'svelte';
+	import { fetchSiteList } from '$lib/fetchNews';
 	
 	let authority = [];
 	let loading = true;
 	
 	onMount(async () => {
-		try {
-			const res = await fetch('/assets/data/authority.json');
-			if (res.ok) {
-				authority = await res.json();
-			}
-		} catch (e) {
-			console.error('Error loading authority:', e);
-		} finally {
-			loading = false;
-		}
+		authority = await fetchSiteList('authority');
+		loading = false;
 	});
 </script>
 

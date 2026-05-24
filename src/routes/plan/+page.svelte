@@ -1,21 +1,14 @@
 <script>
 	import { onMount } from 'svelte';
+	import { fetchSiteList } from '$lib/fetchNews';
 	import { convertDriveLink, openPopup } from '$lib/utils';
 	
 	let plans = [];
 	let loading = true;
 	
 	onMount(async () => {
-		try {
-			const res = await fetch('/assets/data/plans.json');
-			if (res.ok) {
-				plans = await res.json();
-			}
-		} catch (e) {
-			console.error('Error loading plans:', e);
-		} finally {
-			loading = false;
-		}
+		plans = await fetchSiteList('plans');
+		loading = false;
 	});
 </script>
 
