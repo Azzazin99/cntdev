@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CNT Admin V3.2 (Split Mode)</title>
+    <!-- Font & Styles -->
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <!-- Flatpickr (Thai Datepicker) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --primary-purple: #9c27b0;
+            --primary-dark: #7b1fa2;
+            --secondary-gray: #f5f5f5;
+            --text-dark: #333;
+            --admin-nav-height: 70px;
+
+            /* Light Mode Default Variables */
+            --bg-body: #f0f2f5;
+            --bg-card: #ffffff;
+            --bg-input: #ffffff;
+            --border-color: #ddd;
+            --text-main: #333333;
+            --text-muted: #666666;
+            --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Dark Mode Variables */
+        body.dark-mode {
+            --bg-body: #121212;
+            --bg-card: #1e1e1e;
+            --bg-input: #2d2d2d;
+            --border-color: #404040;
+            --text-main: #e0e0e0;
+            --text-muted: #a0a0a0;
+            --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.5);
+
+            --primary-purple: #ce93d8;
+            /* Lighter purple for dark mode */
+            --secondary-gray: #2d2d2d;
+            /* Dark gray for highlights */
+        }
+
+        body {
+            background-color: var(--bg-body);
+            padding-top: 0;
+            font-family: 'Sarabun', sans-serif;
+            color: var(--text-main);
+            margin: 0;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* Admin Header */
+        .admin-header {
+            background: var(--bg-card);
+            padding: 2rem 0;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-card);
+            transition: background 0.3s;
+        }
+
+        .admin-header h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            color: var(--primary-purple);
+        }
+
+        .admin-header p {
+            margin: 5px 0 0;
+            color: var(--text-muted);
+        }
+
+        .admin-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Tabs */
+        .admin-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--border-color);
+            overflow-x: auto;
+        }
+
+        .tab-btn {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            border-bottom: 4px solid transparent;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .tab-btn:hover {
+            color: var(--primary-purple);
+            background: rgba(156, 39, 176, 0.05);
+        }
+
+        .tab-btn.active {
+            color: var(--primary-purple);
+            border-bottom-color: var(--primary-purple);
+        }
+
+        .tab-content {
+            display: none;
+            background: var(--bg-card);
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            transition: background 0.3s;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        /* Buttons */
+        button {
+            cursor: pointer;
+            border: none;
+            border-radius: 6px;
+            font-family: 'Sarabun';
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--primary-purple);
+            color: #fff;
+            /* Always white text on primary button */
+            padding: 10px 20px;
+            font-weight: 600;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: var(--secondary-gray);
+            color: var(--text-main);
+            padding: 10px 20px;
+        }
+
+        .btn-secondary:hover {
+            opacity: 0.8;
+        }
+
+        .btn-danger {
+            background: #f44336;
+            color: white;
+            padding: 8px 16px;
+        }
+
+        .btn-danger:hover {
+            background: #d32f2f;
+        }
+
+        .btn-danger.small {
+            padding: 5px 10px;
+            font-size: 0.9rem;
+        }
+
+        .btn-success {
+            background: #4caf50;
+            color: white;
+            padding: 10px 20px;
+            font-weight: 600;
+        }
+
+        .btn-success:hover {
+            background: #388e3c;
+        }
+
+        /* News List */
+        .news-item-row {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid var(--border-color);
+            gap: 20px;
+        }
+
+        .news-item-row:last-child {
+            border-bottom: none;
+        }
+
+        .news-item-row img {
+            width: 80px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+        }
+
+        .news-info {
+            flex: 1;
+        }
+
+        .news-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--text-main);
+        }
+
+        .news-date {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .news-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        /* List Editor (Manuals/Plans) */
+        .list-item-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: var(--bg-body);
+            /* Slightly different from card */
+            border: 1px solid var(--border-color);
+            margin-bottom: 10px;
+            border-radius: 6px;
+        }
+
+        .drag-handle {
+            cursor: grab;
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            padding: 0 10px;
+        }
+
+        .input-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .input-title {
+            font-weight: 600;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            width: 100%;
+            box-sizing: border-box;
+            background: var(--bg-input);
+            color: var(--text-main);
+        }
+
+        .input-link {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            width: 100%;
+            box-sizing: border-box;
+            background: var(--bg-input);
+            color: var(--text-main);
+        }
+
+        .btn-view-link {
+            text-decoration: none;
+            font-size: 1.2rem;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-card);
+            width: 600px;
+            max-width: 90%;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            color: var(--text-main);
+        }
+
+        .modal-header {
+            padding: 15px 20px;
+            background: var(--bg-body);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.25rem;
+            color: var(--text-main);
+        }
+
+        .modal-body {
+            padding: 20px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .modal-footer {
+            padding: 15px 20px;
+            background: var(--bg-body);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .close-btn {
+            background: none;
+            font-size: 1.5rem;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        .close-btn:hover {
+            color: var(--text-main);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-family: 'Sarabun';
+            background: var(--bg-input);
+            color: var(--text-main);
+        }
+
+        small {
+            display: block;
+            margin-top: 5px;
+            color: var(--text-muted);
+        }
+
+        #img-preview {
+            max-width: 100%;
+            height: auto;
+            margin-top: 10px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Header -->
+    <header class="admin-header" style="position: relative;">
+        <div class="admin-container">
+            <h1>⚙️ ระบบจัดการข้อมูลเว็บไซต์ (Admin V3.2)</h1>
+            <p>แยกหมวดหมู่ข่าวและกิจกรรมชัดเจน</p>
+            <div id="header-actions" style="position: absolute; top: 1rem; right: 1rem; display: flex; gap: 10px;">
+                <button onclick="toggleDarkMode()" class="btn-secondary" style="padding: 8px 12px; font-size: 1.2rem;"
+                    title="สลับโหมดมืด/สว่าง">
+                    🌓
+                </button>
+                <button onclick="logout()"
+                    style="background: #ff5252; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+                    ออกจากระบบ
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="admin-container">
+
+        <!-- Tabs Navigation -->
+        <div class="admin-tabs">
+            <button class="tab-btn active" data-tab="news" onclick="switchTab('news')">📰 ข่าวประชาสัมพันธ์</button>
+            <button class="tab-btn" data-tab="activity" onclick="switchTab('activity')">📸 ภาพกิจกรรม</button>
+            <button class="tab-btn" data-tab="manuals" onclick="switchTab('manuals')">📘 คู่มือปฏิบัติงาน</button>
+            <button class="tab-btn" data-tab="plans" onclick="switchTab('plans')">📈 แผนพัฒนาครู</button>
+            <button class="tab-btn" data-tab="forms" onclick="switchTab('forms')">📝 แบบฟอร์ม</button>
+            <button class="tab-btn" data-tab="personnel" onclick="switchTab('personnel')">👥 บุคลากร</button>
+
+        </div>
+
+        <!-- ==================== TAB: NEWS (PR News) ==================== -->
+        <div id="tab-news" class="tab-content active">
+            <div class="toolbar">
+                <button class="btn-primary" onclick="openModal('news')">+ เพิ่มข่าวใหม่</button>
+                <button class="btn-success" onclick="document.getElementById('csv-file-input').click()">📄 Import from
+                    Sheets (CSV)</button>
+                <input type="file" id="csv-file-input" accept=".csv" style="display: none;"
+                    onchange="handleCSVUpload(this)">
+                <div class="status-indicator">
+                    สถานะ: <span id="status-text">พร้อมใช้งาน</span>
+                </div>
+            </div>
+            <div class="news-list" id="admin-news-list">
+                <!-- News Items -->
+            </div>
+        </div>
+
+        <!-- ==================== TAB: ACTIVITY (Photo Activities) ==================== -->
+        <div id="tab-activity" class="tab-content">
+            <div class="toolbar">
+                <button class="btn-primary" onclick="openModal('activity')">+ เพิ่มภาพกิจกรรม</button>
+            </div>
+            <div class="news-list" id="admin-activity-list">
+                <!-- Activity Items -->
+            </div>
+        </div>
+
+        <!-- ==================== TAB: MANUALS ==================== -->
+        <div id="tab-manuals" class="tab-content">
+            <div class="toolbar">
+                <button class="btn-primary" onclick="addListItem('manuals')">+ เพิ่มคู่มือใหม่</button>
+                <button class="btn-success" onclick="saveList('manuals')">💾 บันทึกคู่มือ</button>
+            </div>
+            <div id="manuals-editor" class="list-editor"></div>
+        </div>
+
+        <!-- ==================== TAB: PLANS ==================== -->
+        <div id="tab-plans" class="tab-content">
+            <div class="toolbar">
+                <button class="btn-primary" onclick="addListItem('plans')">+ เพิ่มแผนงานใหม่</button>
+                <button class="btn-success" onclick="saveList('plans')">💾 บันทึกแผนงาน</button>
+            </div>
+            <div id="plans-editor" class="list-editor"></div>
+        </div>
+
+        <!-- ==================== TAB: FORMS ==================== -->
+        <div id="tab-forms" class="tab-content">
+            <div class="toolbar">
+                <button class="btn-primary" onclick="addListItem('forms')">+ เพิ่มแบบฟอร์มใหม่</button>
+                <button class="btn-success" onclick="saveList('forms')">💾 บันทึกแบบฟอร์ม</button>
+            </div>
+            <div id="forms-editor" class="list-editor"></div>
+        </div>
+
+        <!-- ==================== TAB: PERSONNEL ==================== -->
+        <div id="tab-personnel" class="tab-content">
+            <div class="toolbar">
+                <button class="btn-primary" onclick="addPersonnelItem()">+ เพิ่มบุคลากร</button>
+                <button class="btn-success" onclick="saveList('personnel')">💾 บันทึกบุคลากร</button>
+            </div>
+            <div id="personnel-editor" class="list-editor"></div>
+        </div>
+
+
+
+    </div>
+
+    <!-- Modal for News/Activity -->
+    <div class="modal-overlay" id="news-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="modal-title">เพิ่มข้อมูล</h2>
+                <button class="close-btn" onclick="closeModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="news-id">
+                <input type="hidden" id="news-category-hidden"> <!-- Stores current mode -->
+
+                <div class="form-group">
+                    <label id="label-link">ลิงก์ Facebook (Link หรือ Embed Code)</label>
+                    <input type="text" id="news-link" placeholder="วางลิงก์โพสต์ Facebook หรือรหัสฝัง (iframe)">
+                    <small id="help-link">ระบบจะดึงรูปและลิงก์จริงให้อัตโนมัติ</small>
+                </div>
+
+                <div class="form-group">
+                    <label>วันที่</label>
+                    <input type="text" id="news-date" placeholder="เลือกวันที่">
+                </div>
+
+                <div class="form-group">
+                    <label>หัวข้อ / Title</label>
+                    <input type="text" id="news-title" placeholder="พิมพ์หัวข้อ...">
+                </div>
+
+                <div class="form-group">
+                    <label>รายละเอียด / Caption</label>
+                    <textarea id="news-summary" rows="4" placeholder="รายละเอียดเนื้อหา..."></textarea>
+                </div>
+
+                <div class="form-group" id="group-image">
+                    <label>รูปภาพ (Facebook URL หรือ Local Path)</label>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <input type="text" id="news-image" placeholder="https://..." oninput="previewImage()"
+                            style="flex: 1; min-width: 200px;">
+                        <button class="btn-secondary" onclick="previewImage()">ดูรูป</button>
+                        <button id="btn-download-local" class="btn-success" onclick="downloadImageFromUrl()"
+                            style="white-space: nowrap;">📥
+                            ดาวน์โหลดรูป</button>
+                    </div>
+                    <small>วาง URL รูปจาก Facebook แล้วกด "ดาวน์โหลดรูป" เพื่อบันทึกเก็บไว้ในเครื่อง</small>
+                </div>
+
+                <div class="preview-box">
+                    <img id="img-preview" src="" alt="Auto Preview" style="display: none;">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal()">ยกเลิก</button>
+                <button class="btn-primary" onclick="saveNewsItem()">บันทึก</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/th.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+
+    <!-- Firebase SDK (Compat version for HTML usage) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
+    <!-- Firebase Config -->
+    <script src="assets/js/firebase-config.js"></script>
+
+    <script>
+        // ================= Security Check =================
+        if (sessionStorage.getItem('isAdminLoggedIn') !== 'true') {
+            window.location.href = 'login.html';
+        }
+
+        function logout() {
+            sessionStorage.removeItem('isAdminLoggedIn');
+            window.location.href = 'login.html';
+        }
+
+        // ================= Global State =================
+        let SITE_DATA = { news: [], activities: [], manuals: [], plans: [], forms: [], personnel: [] };
+        let isEditing = false;
+        let currentModalCategory = 'news'; // 'news' or 'activity'
+
+        // ================= Initialization =================
+        document.addEventListener('DOMContentLoaded', async () => {
+            initDarkMode();
+            await loadAllData();
+            initDatePicker();
+            // checkMigrationStatus(); // Disabled migration button for local mode
+        });
+
+        // ================= Cloud Migration =================
+        function checkMigrationStatus() {
+            // Fix: Target the new ID 'header-actions'
+            const headerActions = document.getElementById('header-actions');
+            if (!headerActions) return;
+
+            const btn = document.createElement('button');
+            btn.className = 'btn-success';
+            btn.style.marginRight = '10px'; // Spacing
+            btn.innerHTML = '☁️ Sync to Cloud';
+            btn.onclick = migrateToCloud;
+
+            // Insert before the Dark Mode toggle (first child) or append
+            headerActions.prepend(btn);
+        }
+
+        // ================= Cloud Migration & CSV Import =================
+        async function handleCSVUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            if (!confirm(`ยืนยันการนำเข้าข้อมูลจากไฟล์ "${file.name}"?\n(ข้อมูลจะถูกนำขึ้น Cloud ทันที)`)) {
+                input.value = '';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const text = e.target.result;
+                    const lines = text.split('\n');
+                    const headers = lines[0].split(',').map(h => h.trim());
+
+                    // console.log("CSV Headers:", headers);
+
+                    // Map columns: Need 'หัวข้อข่าว', 'Link', 'ประทับเวลา'
+                    // Or simple index mapping if headers match standard Google Form export
+                    // Standard: Timestamp, Title, Link, Image?
+
+                    const batch = db.batch();
+                    let count = 0;
+
+                    // Skip header
+                    for (let i = 1; i < lines.length; i++) {
+                        const line = lines[i].trim();
+                        if (!line) continue;
+
+                        // Handle CSV parsing better (commas in quotes) - Basic split for now
+                        // Assuming simple CSV from Sheets export without complex quoted commas
+                        const cols = line.split(',');
+
+                        // Map specific to user's known format from import_news.py
+                        // timestamp=0, title=1, link=2? No, let's try to be smart or generic.
+                        // import_news.py used DictReader -> needs headers
+                        // Let's assume user keeps header row: "ประทับเวลา,หัวข้อข่าว,Link"
+
+                        let dateStr = "";
+                        let title = "";
+                        let link = "";
+
+                        // Try to find indices
+                        const idxTime = headers.findIndex(h => h.includes('ประทับเวลา') || h.includes('Timestamp'));
+                        const idxTitle = headers.findIndex(h => h.includes('หัวข้อข่าว') || h.includes('Title'));
+                        const idxLink = headers.findIndex(h => h.includes('Link') || h.includes('link'));
+
+                        if (idxTime > -1) dateStr = cols[idxTime] || "";
+                        if (idxTitle > -1) title = cols[idxTitle] || "";
+                        if (idxLink > -1) link = cols[idxLink] || "";
+
+                        // Fallback indices if not found (0, 1, 2)
+                        if (idxTime === -1 && cols.length >= 1) dateStr = cols[0];
+                        if (idxTitle === -1 && cols.length >= 2) title = cols[1];
+                        if (idxLink === -1 && cols.length >= 3) link = cols[2];
+
+                        if (!title) continue;
+
+                        // Format Date
+                        let formattedDate = dateStr;
+                        // Attempt to format if it looks like D/M/YYYY
+                        // import_news.py logic: "24/12/2025" -> "24 ธันวาคม 2568"
+                        // Simple client-side formatter to be safe
+                        if (dateStr.includes('/')) {
+                            const p = dateStr.split(' ')[0].split('/'); // Ignore time
+                            if (p.length === 3) {
+                                const d = parseInt(p[0]);
+                                const m = parseInt(p[1]);
+                                const y = parseInt(p[2]);
+                                const thMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+                                if (m >= 1 && m <= 12) {
+                                    formattedDate = `${d} ${thMonths[m - 1]} ${y + 543}`;
+                                }
+                            }
+                        }
+
+                        const finalId = Date.now() + i; // Unique ID
+                        const item = {
+                            id: finalId,
+                            title: title.replace(/^"|"$/g, ''), // Remove potential quotes
+                            date: formattedDate,
+                            link: link.replace(/^"|"$/g, ''),
+                            category: "news",
+                            image: "", // Default empty
+                            summary: "",
+                            sortOrder: parseThaiDate(formattedDate)
+                        };
+
+                        const docRef = db.collection('news').doc(finalId.toString());
+                        batch.set(docRef, item);
+                        count++;
+                    }
+
+                    await batch.commit();
+                    alert(`✅ นำเข้าข้อมูลสำเร็จ ${count} รายการ!`);
+                    await loadAllData();
+
+                } catch (err) {
+                    console.error("CSV Import Error:", err);
+                    alert("❌ เกิดข้อผิดพลาดในการอ่านไฟล์ CSV: " + err.message);
+                } finally {
+                    input.value = '';
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // ================= Dark Mode Logic =================
+        function initDarkMode() {
+            const isDark = localStorage.getItem('adminDarkMode') === 'true';
+            if (isDark) {
+                document.body.classList.add('dark-mode');
+            }
+        }
+
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('adminDarkMode', isDark);
+        }
+
+        function renderAllLists() {
+            renderNewsList('news');
+            renderNewsList('activity'); // Will map to 'activities'
+            renderListEditor('manuals');
+            renderListEditor('plans');
+            renderListEditor('forms');
+
+            renderPersonnelEditor();
+        }
+
+        async function loadAllData() {
+            try {
+                // 1. Load News & Activities from Firebase Firestore (Cloud First)
+                try {
+                    // Fetch News
+                    const newsSnaps = await db.collection('news').get();
+                    SITE_DATA.news = [];
+                    newsSnaps.forEach(doc => SITE_DATA.news.push({ id: doc.id, ...doc.data() }));
+
+                    // Fetch Activities
+                    const actSnaps = await db.collection('activities').get();
+                    SITE_DATA.activities = []; // Consistent key 'activities'
+                    actSnaps.forEach(doc => SITE_DATA.activities.push({ id: doc.id, ...doc.data() }));
+
+                    console.log(`✅ Loaded ${SITE_DATA.news.length} News, ${SITE_DATA.activities.length} Activities from Cloud`);
+
+                    // Sort both
+                    const sorter = (a, b) => {
+                        const orderA = a.sortOrder || parseThaiDate(a.date);
+                        const orderB = b.sortOrder || parseThaiDate(b.date);
+                        return orderB - orderA;
+                    }
+                    SITE_DATA.news.sort(sorter);
+                    SITE_DATA.activities.sort(sorter);
+
+                } catch (e) {
+                    console.error("Cloud Fetch Error (News/Activities):", e);
+                }
+
+                // 2. Fetch Generic Lists from 'site_data' collection
+                const genericLists = ['personnel', 'forms', 'manuals', 'plans', 'logos', 'authority'];
+
+
+                for (const listKey of genericLists) {
+                    try {
+                        const doc = await db.collection('site_data').doc(listKey).get();
+                        if (doc.exists) {
+                            const data = doc.data();
+                            if (data.items && Array.isArray(data.items)) {
+                                SITE_DATA[listKey] = data.items;
+                                console.log(`✅ Loaded ${listKey} from Cloud (${data.items.length} items)`);
+                            }
+                        }
+                    } catch (err) {
+                        console.warn(`Could not load ${listKey} from Cloud (using defaults)`);
+                    }
+                }
+
+                // (Legacy JSON fetch removed to prefer Firestore)
+
+
+                // Initial Render
+                renderAllLists();
+
+            } catch (error) {
+                console.error("Load Error:", error);
+                alert("❌ เกิดข้อผิดพลาดในการโหลดข้อมูล: " + error.message);
+            }
+        }
+
+
+
+        // ================= Tabs Logic =================
+        function switchTab(tabName) {
+            // 1. Hide all contents
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            // 2. Deactivate all buttons
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+            // 3. Show target content
+            const targetContent = document.getElementById(`tab-${tabName}`);
+            if (targetContent) {
+                targetContent.classList.add('active');
+            }
+
+            // 4. Activate target button (using robust data-tab selector)
+            const targetBtn = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
+            if (targetBtn) {
+                targetBtn.classList.add('active');
+            }
+        }
+
+        // ================= News & Activities Logic =================
+        function renderNewsList(type) {
+            // type = 'news' or 'activity' -> 'news' or 'activities'
+            const dataKey = type === 'activity' ? 'activities' : type;
+            const container = document.getElementById(type === 'news' ? 'admin-news-list' : 'admin-activity-list');
+
+            // Data is now separated
+            const items = SITE_DATA[dataKey] || [];
+
+            if (items.length === 0) {
+                container.innerHTML = `<div style="text-align:center; padding:20px; color:#999;">ยังไม่มีข้อมูล</div>`;
+                return;
+            }
+
+            container.innerHTML = items.map(item => `
+                <div class="news-item-row list-item-row" data-id="${item.id}">
+                    <div class="drag-handle" style="margin-right:15px; cursor:grab; font-size:1.2rem; color:#ccc;">☰</div>
+                    <img src="${item.image}" alt="thumb" onerror="this.src='https://via.placeholder.com/80?text=No+Img'">
+                    <div class="news-info">
+                        <div class="news-title">${item.title}</div>
+                        <div class="news-date">📅 ${item.date}</div>
+                    </div>
+                    <div class="news-actions">
+                        <button class="btn-secondary" onclick='editNews(${JSON.stringify(item).replace(/'/g, "&#39;")})'>แก้ไข</button>
+                        <button class="btn-danger" onclick="deleteNews(${item.id}, '${type}')">ลบ</button>
+                    </div>
+                </div>
+            `).join('');
+
+            setupNewsSortable(type);
+        }
+
+        function openModal(category) {
+            isEditing = false;
+            currentModalCategory = category;
+
+            // Set Title
+            document.getElementById('modal-title').innerText = category === 'news' ? "เพิ่มข่าวใหม่" : "เพิ่มภาพกิจกรรม";
+            document.getElementById('news-category-hidden').value = category;
+
+            // Clear Form
+            document.getElementById('news-id').value = '';
+            document.getElementById('news-title').value = '';
+            document.getElementById('news-date').value = '';
+            document.getElementById('news-link').value = '';
+            document.getElementById('news-image').value = '';
+            document.getElementById('news-summary').value = '';
+            document.getElementById('img-preview').style.display = 'none';
+
+            // Show Modal
+            updateModalFields(category);
+            document.getElementById('news-modal').classList.add('active');
+        }
+
+        function updateModalFields(category) {
+            const labelLink = document.getElementById('label-link');
+            const inputLink = document.getElementById('news-link');
+            const helpLink = document.getElementById('help-link');
+            const groupImage = document.getElementById('group-image');
+
+            if (category === 'news') {
+                labelLink.innerText = 'ลิงก์เอกสาร / Link (Optional)';
+                inputLink.placeholder = 'วางลิงก์ Google Drive หรือเว็บไซต์ที่เกี่ยวข้อง';
+                helpLink.innerText = 'ใส่ลิงก์ถ้ามีเอกสารแนบ (ไม่บังคับ)';
+                // Hide Image Group for News PR
+                if (groupImage) groupImage.style.display = 'none';
+            } else {
+                labelLink.innerText = 'ลิงก์ Facebook (Link หรือ Embed Code)';
+                inputLink.placeholder = 'วางลิงก์โพสต์ Facebook หรือรหัสฝัง (iframe)';
+                helpLink.innerText = 'ระบบจะดึงรูปและลิงก์จริงให้อัตโนมัติ';
+                // Show Image Group for Activity
+                if (groupImage) groupImage.style.display = 'block';
+            }
+        }
+
+        function editNews(item) {
+            isEditing = true;
+            // Determine category from item; fallback to 'news'
+            const itemCat = item.category || 'news';
+            currentModalCategory = itemCat;
+
+            document.getElementById('modal-title').innerText = "แก้ไขข้อมูล";
+            document.getElementById('news-category-hidden').value = currentModalCategory;
+            document.getElementById('news-id').value = item.id;
+            document.getElementById('news-title').value = item.title;
+
+            if (document.getElementById('news-date')._flatpickr) {
+                document.getElementById('news-date')._flatpickr.setDate(item.date);
+            } else {
+                document.getElementById('news-date').value = item.date;
+            }
+
+            document.getElementById('news-link').value = item.link;
+            document.getElementById('news-image').value = item.image;
+            document.getElementById('news-summary').value = item.summary || "";
+
+            document.getElementById('news-summary').value = item.summary || "";
+
+            previewImage();
+            updateModalFields(itemCat);
+            document.getElementById('news-modal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('news-modal').classList.remove('active');
+        }
+
+        function previewImage() {
+            const url = document.getElementById('news-image').value;
+            const preview = document.getElementById('img-preview');
+            if (url) {
+                preview.src = url;
+                preview.style.display = 'block';
+            } else {
+                preview.style.display = 'none';
+            }
+        }
+
+        async function downloadImageFromUrl() {
+            const imageUrl = document.getElementById('news-image').value;
+
+            if (!imageUrl) {
+                alert('กรุณาวาง URL รูปภาพก่อน');
+                return;
+            }
+
+            if (!imageUrl.startsWith('http')) {
+                alert('รูปนี้เป็น Local Path อยู่แล้ว ไม่ต้องดาวน์โหลด');
+                return;
+            }
+
+            // Check if we are on Vercel/Cloud (no local server)
+            if (window.location.hostname.includes('vercel.app')) {
+                alert('⚠️ ฟีเจอร์ "ดาวน์โหลดรูปลงเครื่อง" ใช้งานได้เฉพาะ Localhost เท่านั้น\n\nบน Cloud รบกวนใช้ URL รูปภาพโดยตรง หรืออัปโหลดผ่าน Storage (กำลังพัฒนา)');
+                return;
+            }
+
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '⏳ กำลังดาวน์โหลด...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/api/download-image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: imageUrl })
+                });
+
+                // Check for HTML response (404/500 from Vercel) instead of JSON
+                const contentType = response.headers.get("content-type");
+                if (contentType && contentType.indexOf("application/json") === -1) {
+                    throw new Error("Server Error (Not JSON). Are you on Vercel?");
+                }
+
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    // Update image input with local path
+                    document.getElementById('news-image').value = result.localPath;
+                    previewImage();
+                    alert('✅ ' + result.message);
+                } else {
+                    alert('❌ ดาวน์โหลดไม่สำเร็จ: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Download error:', error);
+                alert('❌ เกิดข้อผิดพลาด: ' + error.message + '\n\nฟีเจอร์นี้ต้องใช้ Python Server (Local Only)');
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        // ================= Sorting Logic =================
+        function parseThaiDate(dateStr) {
+            if (!dateStr) return 0;
+            // Format: "D Month YYYY" (e.g., "15 มกราคม 2568")
+            const parts = dateStr.trim().split(/\s+/);
+            if (parts.length < 3) return 0;
+
+            const day = parseInt(parts[0]);
+            const monthName = parts[1];
+            const yearBE = parseInt(parts[2]); // 2568
+            const yearAD = yearBE - 543; // 2025
+
+            const thaiMonths = [
+                "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+                "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+            ];
+            const monthIndex = thaiMonths.indexOf(monthName);
+
+            if (monthIndex === -1) return 0;
+
+            // Create Date object (Month is 0-indexed)
+            return new Date(yearAD, monthIndex, day).getTime();
+        }
+
+        function insertSorted(list, newItem) {
+            const newDateTs = parseThaiDate(newItem.date);
+
+            // Find insertion index: we want Newest First (Descending)
+            // So we find the first item that is Older (smaller timestamp) than newItem
+            // and insert before it.
+            let insertIndex = list.findIndex(item => {
+                const itemTs = parseThaiDate(item.date);
+                return newDateTs > itemTs; // If new date is newer than current item, insert here
+            });
+
+            if (insertIndex === -1) {
+                list.push(newItem); // If no older item found, append to end (it's the oldest)
+            } else {
+                list.splice(insertIndex, 0, newItem);
+            }
+        }
+
+        // ================= Save Logic with Auto-Sort =================
+        async function saveNewsItem() {
+            try {
+                console.log("Saving item...");
+                const id = document.getElementById('news-id').value;
+                const category = document.getElementById('news-category-hidden').value || 'news';
+                const title = document.getElementById('news-title').value;
+                const date = document.getElementById('news-date').value;
+                const linkInput = document.getElementById('news-link').value;
+                const summary = document.getElementById('news-summary').value;
+
+                // Image might be undefined if hidden
+                let image = "";
+                const imgInput = document.getElementById('news-image');
+                if (imgInput) image = imgInput.value;
+
+                console.log("Data:", { id, category, title, date });
+
+                if (!title || !date) {
+                    alert("กรุณากรอกหัวข้อและวันที่");
+                    return;
+                }
+
+                let finalLink = linkInput;
+                let finalId = parseInt(id) || Date.now();
+
+                // If News and no link is provided, default to detail page
+                if (category === 'news' && !finalLink) {
+                    finalLink = `news-detail.html?id=${finalId}`;
+                }
+
+                const newItem = {
+                    id: finalId,
+                    title,
+                    date,
+                    category: category,
+                    image: image || "",
+                    link: finalLink || "",
+                    summary: summary || ""
+                };
+
+                // Sort Order Logic (New Items)
+                if (!isEditing) {
+                    newItem.sortOrder = parseThaiDate(date);
+                }
+
+                // Save to Firestore (Cloud)
+                const collectionName = category === 'news' ? 'news' : 'activities';
+
+                console.log(`Writing to ${collectionName}/${finalId}...`);
+                await db.collection(collectionName).doc(finalId.toString()).set(newItem, { merge: true });
+
+                console.log("Save Success!");
+                alert(`✅ บันทึกข้อมูล (${category}) ขึ้น Cloud เรียบร้อย!`);
+                closeModal();
+
+                // Reload data
+                await loadAllData();
+
+            } catch (error) {
+                console.error("Save Error (Detailed):", error);
+                alert("❌ บันทึกไม่สำเร็จ: " + error.message + "\n(ดู Console เพื่อดูรายละเอียด)");
+            }
+        }
+
+        // ================= Drag & Drop Reordering =================
+        function setupSortable(type) {
+            const el = document.getElementById(`${type}-editor`);
+            if (el && !el.sortableInitialized) {
+                new Sortable(el, {
+                    handle: '.drag-handle', // Drag handle selector
+                    animation: 150,
+                    onEnd: async function (evt) {
+                        // Reorder SITE_DATA array based on new DOM order
+                        // This assumes the DOM order matches array except for the moved item
+
+                        // It's safer to rebuild the array based on data-index, 
+                        // BUT data-index is static from render.
+                        // SortableJS modifies the DOM. 
+                        // We need to map the new DOM order back to data.
+
+                        const newOrder = [];
+                        const rows = el.querySelectorAll('.list-item-row');
+                        rows.forEach(row => {
+                            const oldIndex = parseInt(row.getAttribute('data-index'));
+                            newOrder.push(SITE_DATA[type][oldIndex]);
+                        });
+
+                        // Update Data
+                        SITE_DATA[type] = newOrder;
+
+                        // Re-render to update data-indices
+                        renderListEditor(type);
+
+                        // Save
+                        await saveList(type);
+                    }
+                });
+                el.sortableInitialized = true;
+            }
+        }
+
+        // Hook into renderListEditor for generic lists
+        const originalRenderListEditor = renderListEditor;
+        renderListEditor = function (type) {
+            originalRenderListEditor(type);
+            setupSortable(type);
+        };
+
+        // Hook for News Lists (since they are separate)
+        function setupNewsSortable(category) {
+            // Fix: Use correct IDs matching helper in renderNewsList
+            const elId = category === 'news' ? 'admin-news-list' : 'admin-activity-list';
+            const el = document.getElementById(elId);
+
+            if (el && !el.sortableInitialized) {
+                new Sortable(el, {
+                    handle: '.drag-handle',
+                    animation: 150,
+                    onEnd: async function (evt) {
+                        // For news/activity, we share SITE_DATA.news source
+                        // This is tricky because SITE_DATA.news contains BOTH.
+                        // We are only reordering a filtered subset visible in the UI.
+                        // If we move item A before B in "Activity" list, 
+                        // we need to reflect that in the main SITE_DATA.news array 
+                        // while keeping relative order of others.
+
+                        // SIMPLIFIED APPROACH:
+                        // Since users might see "Activity" and "News" separately in Admin,
+                        // changing order in "Activity" should only affect relative order of activities.
+
+                        // 1. Get all items of this category from DOM
+                        const rows = el.querySelectorAll('.list-item-row');
+                        const newOrderIds = [];
+                        rows.forEach(row => {
+                            const id = row.getAttribute('data-id');
+                            if (id) newOrderIds.push(id.toString());
+                        });
+
+                        // 2. Get Data for this Category
+                        const categoryItems = SITE_DATA[category] || [];
+
+                        // 3. Collect Available sortOrder values
+                        // We want to re-distribute existing sortKeys to the new order
+                        let availableSortOrders = categoryItems.map(item => {
+                            return item.sortOrder || parseThaiDate(item.date);
+                        });
+
+                        // Sort values Descending (High to Low)
+                        availableSortOrders.sort((a, b) => b - a);
+
+                        // 4. Batch Update Firestore
+                        try {
+                            const batch = db.batch();
+                            const collectionName = category === 'news' ? 'news' : 'activities';
+
+                            newOrderIds.forEach((id, index) => {
+                                // Assign the (index)-th highest sortOrder to the (index)-th item in the new list
+                                const newSortOrder = availableSortOrders[index];
+                                const finalOrder = newSortOrder !== undefined ? newSortOrder : (Date.now() - index * 1000);
+
+                                const docRef = db.collection(collectionName).doc(id);
+                                batch.update(docRef, { sortOrder: finalOrder });
+                            });
+
+                            await batch.commit();
+                            console.log(`✅ Reordered ${newOrderIds.length} items`);
+
+                            // Reload to sync Local Data
+                            await loadAllData();
+
+                        } catch (error) {
+                            console.error("Reorder Error:", error);
+                            alert("❌ จัดเรียงไม่สำเร็จ: " + error.message);
+
+                        }
+                    }
+                });
+                el.sortableInitialized = true;
+            }
+        }
+
+
+        async function deleteNews(id, type) {
+            if (confirm("ต้องการลบรายการนี้ใช่ไหม?")) {
+                try {
+                    // Delete from Firestore
+                    const collectionName = type === 'news' ? 'news' : 'activities';
+                    await db.collection(collectionName).doc(String(id)).delete();
+
+                    alert('✅ ลบรายการเรียบร้อย');
+
+                    // Reload data
+                    await loadAllData();
+
+                } catch (error) {
+                    console.error("Delete Error:", error);
+                    alert("❌ ลบไม่สำเร็จ: " + error.message);
+                }
+            }
+        }
+
+        // ================= Generic List Editor (Shared) =================
+        function renderListEditor(type) {
+            const container = document.getElementById(`${type}-editor`);
+            const items = SITE_DATA[type] || [];
+
+            if (items.length === 0) {
+                container.innerHTML = `<div style="text-align:center; padding:20px; color:#999;">ยังไม่มีข้อมูล กด + เพื่อเพิ่ม</div>`;
+                return;
+            }
+
+            container.innerHTML = items.map((item, index) => `
+                <div class="list-item-row" data-index="${index}">
+                    <div class="drag-handle">☰</div>
+                    <div class="input-group">
+                        <input type="text" class="input-title" value="${item.title || item.name || ''}" placeholder="ชื่อเรื่อง / หัวข้อ" onchange="updateListItem('${type}', ${index}, 'title', this.value)">
+                        <input type="text" class="input-link" value="${item.link}" placeholder="ลิงก์ Google Drive / เว็บไซต์" onchange="updateListItem('${type}', ${index}, 'link', this.value)">
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:5px; align-items:center;">
+                        ${item.link ? `<a href="${item.link}" target="_blank" class="btn-view-link" title="ลองเปิดลิงก์">🔗</a>` : ''}
+                        <button class="btn-danger small" onclick="removeListItem('${type}', ${index})">🗑</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ================= Personnel Editor =================
+        function renderPersonnelEditor() {
+            const container = document.getElementById('personnel-editor');
+            const items = SITE_DATA.personnel || [];
+
+            if (items.length === 0) {
+                container.innerHTML = `<div style="text-align:center; padding:20px; color:#999;">ยังไม่มีบุคลากร กด + เพื่อเพิ่ม</div>`;
+                return;
+            }
+
+            container.innerHTML = items.map((item, index) => `
+                <div class="list-item-row" data-index="${index}" style="align-items:flex-start;">
+                    <div class="drag-handle" style="margin-top:20px;">☰</div>
+                    <div style="margin-right:15px;">
+                        <img src="${item.image}" style="width:80px; height:80px; object-fit:cover; border-radius:50%; border:2px solid #eee;">
+                    </div>
+                    <div class="input-group">
+                        <input type="text" class="input-title" value="${item.name}" placeholder="ชื่อ-นามสกุล" onchange="updateListItem('personnel', ${index}, 'name', this.value)">
+                        <input type="text" class="input-link" value="${item.position}" placeholder="ตำแหน่ง" onchange="updateListItem('personnel', ${index}, 'position', this.value)">
+                        <input type="text" class="input-link" value="${item.phone}" placeholder="เบอร์โทรศัพท์" onchange="updateListItem('personnel', ${index}, 'phone', this.value)">
+                        <input type="text" class="input-link" value="${item.image}" placeholder="URL รูปภาพ (คลิกขวา Copy Image Address)" onchange="updateListItem('personnel', ${index}, 'image', this.value)">
+                    </div>
+                    <div style="margin-top:20px;">
+                        <button class="btn-danger small" onclick="removeListItem('personnel', ${index})">🗑</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ================= Shared Helper Functions =================
+        function addListItem(type) {
+            const dataKey = type === 'activity' ? 'activities' : type;
+            if (!SITE_DATA[dataKey]) SITE_DATA[dataKey] = [];
+            SITE_DATA[dataKey].unshift({ title: "", link: "" });
+            renderListEditor(type);
+        }
+
+        function addPersonnelItem() {
+            if (!SITE_DATA.personnel) SITE_DATA.personnel = [];
+            SITE_DATA.personnel.push({ name: "", position: "", phone: "", image: "https://via.placeholder.com/150" });
+            renderPersonnelEditor();
+        }
+
+        function removeListItem(type, index) {
+            const dataKey = type === 'activity' ? 'activities' : type;
+            if (confirm("ลบรายการนี้ใช่หรือไม่?")) {
+                SITE_DATA[dataKey].splice(index, 1);
+                renderListEditor(type);
+            }
+        }
+
+        function updateListItem(type, index, key, value) {
+            const dataKey = type === 'activity' ? 'activities' : type;
+            SITE_DATA[dataKey][index][key] = value;
+        }
+
+        async function saveList(type) {
+            const dataKey = type === 'activity' ? 'activities' : type;
+            // Filter invalid empty items
+            const cleanData = SITE_DATA[dataKey].filter(item => {
+                if (type === 'personnel') return item.name && item.name.trim() !== "";
+                return (item.title && item.title.trim() !== "");
+            });
+            SITE_DATA[dataKey] = cleanData;
+            renderListEditor(type);
+
+            // Save to Firestore (Cloud)
+            try {
+                // We save the entire array as a single document for these simple lists
+                // Structure: collection 'settings' -> doc 'lists' -> field '{type}'
+                // OR: collection '{type}' -> docs (but that's harder to sync with current array structure)
+
+                // Let's use a 'metadata' collection to store these simple JSON lists
+                // Document ID: 'site_data'
+                // Field: type (e.g. 'personnel', 'forms', etc.)
+
+                const docRef = db.collection('site_data').doc(dataKey);
+                await docRef.set({ items: cleanData }, { merge: true });
+
+                const toast = document.createElement('div');
+                toast.innerText = `✅ บันทึก ${type} ขึ้น Cloud เรียบร้อย`;
+                toast.style.cssText = "position:fixed;bottom:20px;right:20px;background:#4caf50;color:white;padding:10px 20px;border-radius:5px;z-index:3000;";
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 2000);
+
+            } catch (error) {
+                console.error("Save List Error:", error);
+                alert("❌ บันทึกไม่สำเร็จ: " + error.message);
+            }
+        }
+
+        // ================= Date Extraction Logic =================
+        function tryExtractDateFromText(text) {
+            // Regex to match Thai dates: e.g., "28 พฤศจิกายน 2567" or "ที่ 28 พ.ย. 67" (Long form preferred for accuracy)
+            // Matches: Day (1-2 digits) + Spaces + Month Name + Spaces + Year (4 digits, assuming BE)
+            const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+            const pattern = new RegExp(`(\\d{1,2})\\s+(${thaiMonths.join('|')})\\s+(\\d{4})`);
+
+            const match = text.match(pattern);
+            if (match) {
+                const day = parseInt(match[1]);
+                const monthName = match[2];
+                const yearBE = parseInt(match[3]);
+
+                // Convert BE to AD
+                const yearAD = yearBE - 543;
+
+                // Thai Month to Index
+                const monthIndex = thaiMonths.indexOf(monthName);
+
+                if (monthIndex !== -1) {
+                    // Update Flatpickr
+                    const fp = document.querySelector("#news-date")._flatpickr;
+                    if (fp) {
+                        const newDate = new Date(yearAD, monthIndex, day);
+                        fp.setDate(newDate, true); // true = trigger change event
+
+                        // Visual Feedback (optional)
+                        const dateInput = document.getElementById('news-date');
+                        dateInput.style.backgroundColor = "#e8f5e9";
+                        setTimeout(() => dateInput.style.backgroundColor = "", 1000);
+                    }
+                }
+            }
+        }
+
+        // Attach listener to Summary Field
+        document.getElementById('news-summary').addEventListener('input', function (e) {
+            tryExtractDateFromText(e.target.value);
+        });
+
+        // ================= Date Picker =================
+        function initDatePicker() {
+            flatpickr("#news-date", {
+                locale: "th",
+                dateFormat: "j F Y",
+                defaultDate: "today",
+                disableMobile: "true",
+                onReady: function (selectedDates, dateStr, instance) {
+                    formatThaiYear(instance);
+                },
+                onValueUpdate: function (selectedDates, dateStr, instance) {
+                    formatThaiYear(instance);
+                },
+                onMonthChange: function (selectedDates, dateStr, instance) {
+                    formatThaiYear(instance);
+                },
+                onYearChange: function (selectedDates, dateStr, instance) {
+                    formatThaiYear(instance);
+                },
+                onOpen: function (selectedDates, dateStr, instance) {
+                    formatThaiYear(instance);
+                }
+            });
+        }
+
+        function formatThaiYear(instance) {
+            // 1. Adjust Input Display (e.g. "15 มกราคม 2026" -> "15 มกราคม 2569")
+            if (instance.input.value) {
+                const parts = instance.input.value.split(' ');
+                if (parts.length === 3) {
+                    const yearAD = parseInt(parts[2]);
+                    if (!isNaN(yearAD) && yearAD < 2400) { // Check if it's likely AD
+                        const yearBE = yearAD + 543;
+                        instance.input.value = `${parts[0]} ${parts[1]} ${yearBE}`;
+                    }
+                }
+            }
+
+            // 2. Adjust Calendar Year Dropdown
+            // We use a small timeout to ensure DOM is ready
+            setTimeout(() => {
+                const yearInput = instance.calendarContainer.querySelector(".cur-year");
+                const currentYear = instance.currentYear;
+                if (yearInput && currentYear < 2400) {
+                    // If matches AD year
+                    yearInput.value = currentYear + 543;
+                }
+            }, 10);
+        }
+    </script>
+</body>
+
+</html>

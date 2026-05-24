@@ -1,0 +1,360 @@
+﻿﻿﻿﻿<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ภาพกิจกรรม - กลุ่มพัฒนาครูฯ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/style.css">
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="assets/js/firebase-config.js"></script>
+
+    <style>
+        /* Activity Detail Modal */
+        .activity-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .activity-modal-overlay.active {
+            display: flex;
+        }
+
+        .activity-modal {
+            background: var(--white, #fff);
+            max-width: 800px;
+            width: 100%;
+            max-height: 90vh;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .activity-modal-header {
+            padding: 20px;
+            background: var(--primary-purple, #7b1fa2);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .activity-modal-header h2 {
+            margin: 0;
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        .activity-modal-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 2rem;
+            cursor: pointer;
+            line-height: 1;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+
+        .activity-modal-close:hover {
+            opacity: 1;
+        }
+
+        .activity-modal-body {
+            padding: 0;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .activity-modal-image {
+            width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+            background: #f5f5f5;
+        }
+
+        .activity-modal-content {
+            padding: 25px;
+        }
+
+        .activity-modal-date {
+            color: var(--primary-purple, #7b1fa2);
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+        }
+
+        .activity-modal-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: var(--text-dark, #333);
+            line-height: 1.4;
+        }
+
+        .activity-modal-summary {
+            color: var(--text-gray, #666);
+            line-height: 1.8;
+            font-size: 1rem;
+            white-space: pre-line;
+        }
+
+        .activity-modal-footer {
+            padding: 15px 25px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-gray, #f8f9fa);
+        }
+
+        .activity-fb-link {
+            color: #1877f2;
+            text-decoration: none;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .activity-fb-link:hover {
+            text-decoration: underline;
+        }
+
+        .activity-close-btn {
+            background: var(--primary-purple, #7b1fa2);
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Sarabun', sans-serif;
+        }
+
+        .activity-close-btn:hover {
+            opacity: 0.9;
+        }
+
+        /* Card improvements */
+        .news-card {
+            cursor: pointer;
+        }
+
+        /* Dark mode support */
+        body.dark-mode .activity-modal {
+            background: var(--white, #2d2e31);
+        }
+
+        body.dark-mode .activity-modal-title {
+            color: var(--text-dark, #e8eaed);
+        }
+
+        body.dark-mode .activity-modal-summary {
+            color: var(--text-gray, #9aa0a6);
+        }
+
+        body.dark-mode .activity-modal-footer {
+            background: var(--bg-gray, #202124);
+            border-color: #404040;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Header Component -->
+    <div id="header-placeholder"></div>
+
+    <div class="container">
+        <h1 class="section-title">📸 ภาพกิจกรรมทั้งหมด</h1>
+        <div class="news-grid" id="all-news-container">
+            <div style="grid-column: 1/-1; text-align: center; color: #999; padding: 2rem;">⏳ กำลังโหลดภาพกิจกรรม...
+            </div>
+        </div>
+    </div>
+
+    <!-- Activity Detail Modal -->
+    <div class="activity-modal-overlay" id="activity-modal">
+        <div class="activity-modal">
+            <div class="activity-modal-header">
+                <h2>📸 รายละเอียดกิจกรรม</h2>
+                <button class="activity-modal-close" onclick="closeActivityModal()">&times;</button>
+            </div>
+            <div class="activity-modal-body">
+                <img id="modal-activity-image" class="activity-modal-image" src="" alt="Activity Image">
+                <div class="activity-modal-content">
+                    <div id="modal-activity-date" class="activity-modal-date"></div>
+                    <h3 id="modal-activity-title" class="activity-modal-title"></h3>
+                    <p id="modal-activity-summary" class="activity-modal-summary"></p>
+                </div>
+            </div>
+            <div class="activity-modal-footer">
+                <a id="modal-fb-link" href="#" target="_blank" class="activity-fb-link">
+                    🔗 ดูโพสต์ต้นฉบับบน Facebook
+                </a>
+                <button class="activity-close-btn" onclick="closeActivityModal()">ปิด</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Logos -->
+    <!-- External Links -->
+    <!-- Footer Component -->
+    <div id="footer-placeholder"></div>
+
+    <script src="assets/js/data.js?v=3"></script>
+    <script src="assets/js/main.js?v=3"></script>
+
+    <script>
+        // Activity Data Store for Modal
+        let activityData = [];
+
+        // Main Logic
+        (function () {
+            // Helper: Parse Thai Date
+            function parseThaiDate(dateStr) {
+                if (!dateStr) return 0;
+                const parts = dateStr.trim().split(/\s+/);
+                if (parts.length < 3) return 0;
+                const day = parseInt(parts[0]);
+                const monthName = parts[1];
+                const yearBE = parseInt(parts[2]);
+                const yearAD = yearBE - 543;
+                const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+                const monthIndex = thaiMonths.indexOf(monthName);
+                if (monthIndex === -1) return 0;
+                return new Date(yearAD, monthIndex, day).getTime();
+            }
+
+            document.addEventListener('DOMContentLoaded', async () => {
+                const container = document.getElementById('all-news-container');
+
+                try {
+                    // Fetch from Firestore (Activities Only) - Cloud First
+                    const snapshot = await db.collection('activities').get();
+                    const activities = [];
+                    snapshot.forEach(doc => activities.push({ id: doc.id, ...doc.data() }));
+
+                    // Sort: Order > Date (Descending)
+                    activities.sort((a, b) => {
+                        const orderA = a.sortOrder || parseThaiDate(a.date);
+                        const orderB = b.sortOrder || parseThaiDate(b.date);
+                        return orderB - orderA;
+                    });
+
+                    // Store global for modal
+                    activityData = activities;
+
+                    renderActivities(activities);
+
+                } catch (e) {
+                    console.error("Load Error:", e);
+                    container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: #d32f2f;">ไม่สามารถโหลดข้อมูลได้ (Cloud Error): ${e.message}</div>`;
+                }
+            });
+
+            function renderActivities(items) {
+                const container = document.getElementById('all-news-container');
+                if (items.length === 0) {
+                    container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 3rem; color: #999;">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">📭</div>
+                        ไม่มีภาพกิจกรรม
+                    </div>`;
+                } else {
+                    container.innerHTML = items.map(item => `
+                        <div class="news-card" onclick="openActivityModal('${item.id}')">
+                            <img src="${item.image}" class="news-img" alt="${item.title}" 
+                                 onerror="this.onerror=null; this.src='assets/images/logos/moe.png'; this.style.opacity='0.5';">
+                            <div class="news-content">
+                                <div class="news-date">📅 ${item.date}</div>
+                                <h3 class="news-title">${item.title}</h3>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: auto;">
+                                    <span class="news-read-more">ดูภาพกิจกรรม →</span>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            }
+        })();
+
+        // Modal Functions
+        function openActivityModal(id) {
+            // Ensure ID is string
+            const strId = String(id);
+            const item = activityData.find(n => String(n.id) === strId);
+            if (!item) return;
+
+            document.getElementById('modal-activity-image').src = item.image || 'assets/images/logos/moe.png';
+            document.getElementById('modal-activity-date').innerText = '📅 ' + item.date;
+            document.getElementById('modal-activity-title').innerText = item.title;
+            document.getElementById('modal-activity-summary').innerText = item.summary || 'ไม่มีรายละเอียดเพิ่มเติม';
+
+            const fbLink = document.getElementById('modal-fb-link');
+            if (item.link && item.link.includes('facebook.com')) {
+                fbLink.href = item.link;
+                fbLink.style.display = 'flex';
+            } else if (item.facebookLink) {
+                fbLink.href = item.facebookLink;
+                fbLink.style.display = 'flex';
+            } else {
+                fbLink.style.display = 'none';
+            }
+
+            document.getElementById('activity-modal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeActivityModal() {
+            document.getElementById('activity-modal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        // Close on overlay click
+        document.getElementById('activity-modal').addEventListener('click', function (e) {
+            if (e.target === this) {
+                closeActivityModal();
+            }
+        });
+
+        // Close on ESC key
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                closeActivityModal();
+            }
+        });
+    </script>
+</body>
+
+</html>

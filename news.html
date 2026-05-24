@@ -1,0 +1,137 @@
+﻿﻿﻿﻿<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ข่าวประชาสัมพันธ์ - กลุ่มพัฒนาครูฯ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/style.css">
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="assets/js/firebase-config.js"></script>
+    <style>
+        .news-link-item {
+            display: block;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #eee;
+            transition: color 0.2s;
+            text-decoration: none;
+            color: var(--text-dark);
+        }
+
+        .news-link-item:hover {
+            color: var(--primary-purple);
+        }
+
+        .news-link-date {
+            font-size: 0.9rem;
+            color: var(--text-gray);
+            margin-bottom: 0.3rem;
+            font-weight: 500;
+        }
+
+        .news-link-title {
+            font-size: 1.1rem;
+            font-weight: 400;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Header Component -->
+    <div id="header-placeholder"></div>
+
+    <div class="container">
+        <h1 class="section-title">📰 ข่าวประชาสัมพันธ์ทั้งหมด</h1>
+        <div id="all-news-container" style="max-width: 900px;">
+            <div style="padding: 2rem; color: #999; text-align: center;">⏳ กำลังโหลดข้อมูล...</div>
+        </div>
+    </div>
+
+    <!-- Logos -->
+    <!-- External Links -->
+    <!-- Footer Component -->
+    <div id="footer-placeholder"></div>
+
+    <script src="assets/js/data.js?v=3"></script>
+    <script src="assets/js/main.js?v=3"></script>
+
+    <script>
+        // Use an IIFE to ensure variables don't leak or conflict
+        (function () {
+            // Helper: Parse Thai Date
+            function parseThaiDate(dateStr) {
+                if (!dateStr) return 0;
+                const parts = dateStr.trim().split(/\s+/);
+                if (parts.length < 3) return 0;
+                const day = parseInt(parts[0]);
+                const monthName = parts[1];
+                const yearBE = parseInt(parts[2]);
+                const yearAD = yearBE - 543;
+                const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+                const monthIndex = thaiMonths.indexOf(monthName);
+                if (monthIndex === -1) return 0;
+                return new Date(yearAD, monthIndex, day).getTime();
+            }
+
+            document.addEventListener('DOMContentLoaded', async () => {
+                const container = document.getElementById('all-news-container');
+
+                try {
+                    // Fetch from Firestore (News Only) - Cloud First
+                    const snapshot = await db.collection('news').get();
+                    const newsItems = [];
+                    snapshot.forEach(doc => newsItems.push({ id: doc.id, ...doc.data() }));
+
+                    // Sort: Order > Date (Descending)
+                    newsItems.sort((a, b) => {
+                        const orderA = a.sortOrder || parseThaiDate(a.date);
+                        const orderB = b.sortOrder || parseThaiDate(b.date);
+                        return orderB - orderA;
+                    });
+
+                    renderNews(newsItems);
+
+                } catch (e) {
+                    console.error("Load Error:", e);
+                    // Fallback to JSON if Cloud fails? (Optional)
+                    // For now, let's keep it pure Cloud as requested, or simple alert
+                    container.innerHTML = `<div style="text-align:center; padding:2rem; color:red;">ไม่สามารถโหลดข้อมูลได้ (Cloud Error): ${e.message}</div>`;
+                }
+            });
+        })();
+
+        function renderNews(dataSource) {
+            const container = document.getElementById('all-news-container');
+            const allNews = dataSource || window.SITE_DATA?.news || [];
+
+            // Filter strictly for 'news'
+            const filtered = allNews.filter(item => item.category === 'news');
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                        <div style="text-align: center; padding: 3rem; color: #999;">
+                            ไม่มีข่าวประชาสัมพันธ์
+                        </div>
+                    `;
+            } else {
+                container.innerHTML = filtered.slice().map(news => `
+                        <a href="#" onclick="openPopup('${news.link}'); return false;" class="news-link-item">
+                            <div class="news-link-date">📅 ${news.date}</div>
+                            <div class="news-link-title">${news.title}</div>
+                        </a>
+                    `).join('');
+            }
+        }
+
+    </script>
+</body>
+
+</html>

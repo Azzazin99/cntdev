@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>รายละเอียดข่าว - กลุ่มพัฒนาครูฯ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/style.css">
+
+    <!-- Libraries for Image Downloading/Zipping -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+</head>
+
+<body>
+
+    <!-- Header Component -->
+    <div id="header-placeholder"></div>
+
+    <div class="container grid-layout">
+        <main>
+            <div id="news-detail-content">
+                <!-- Content injected by JS -->
+                <div style="text-align: center; padding: 2rem; color: #666;">กำลังโหลด...</div>
+            </div>
+
+            <div style="margin-top: 2rem;">
+                <a href="news.html" class="btn-download" style="display:inline-block; border:1px solid #ddd;">&larr;
+                    กลับไปหน้าข่าวทั้งหมด</a>
+            </div>
+        </main>
+
+        <aside class="sidebar">
+            <a href="https://script.google.com/macros/s/AKfycbypYPZ8CqMIct0hO9OVE-tpZHbevWYGGKh_UvgB1I9ci5a9JQ0vWDNh3TA7K-_fFUQ/exec"
+                class="sidebar-card" target="_blank" rel="noopener noreferrer">
+                <img src="assets/images/registry-system.png" alt="ระบบทะเบียนประวัติ">
+            </a>
+            <a href="#" class="sidebar-card">
+                <div class="sidebar-content">
+                    <div class="sidebar-icon">🏆</div>
+                    <div class="sidebar-title">คลังเกียรติบัตร</div>
+                    <div class="sidebar-subtitle">รวบรวมรางวัลและผลงาน</div>
+                </div>
+            </a>
+        </aside>
+    </div>
+
+    <!-- External Links -->
+    <!-- Footer Component -->
+    <div id="footer-placeholder"></div>
+
+    <!-- Firebase SDK (Compat version) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
+    <!-- Firebase Config -->
+    <script src="assets/js/firebase-config.js"></script>
+
+    <script src="assets/js/data.js?v=3"></script>
+    <script src="assets/js/main.js?v=3"></script>
+</body>
+
+</html>

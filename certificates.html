@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>คลังเกียรติบัตร - กลุ่มพัฒนาครูฯ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        .search-container {
+            margin-bottom: 2rem;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 1rem 1.5rem;
+            padding-left: 3.5rem;
+            font-size: 1.1rem;
+            border: 2px solid #ddd;
+            border-radius: 50px;
+            font-family: var(--font-main);
+            transition: all 0.3s;
+            background: var(--white);
+            color: var(--text-dark);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary-purple);
+            box-shadow: 0 4px 12px rgba(123, 31, 162, 0.2);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 1.2rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-gray);
+            font-size: 1.2rem;
+        }
+
+        /* Certificate List Style */
+        .cert-table-container {
+            background: var(--white);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px var(--shadow);
+            overflow: hidden;
+        }
+
+        .cert-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .cert-table th,
+        .cert-table td {
+            padding: 1rem 1.5rem;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .cert-table th {
+            background: var(--primary-purple);
+            color: white;
+            font-weight: 600;
+        }
+
+        .cert-table tr:hover {
+            background: var(--bg-gray);
+        }
+
+        .cert-link {
+            display: inline-block;
+            padding: 6px 16px;
+            background: var(--primary-purple-light);
+            color: var(--primary-purple);
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .cert-link:hover {
+            background: var(--primary-purple);
+            color: white;
+        }
+
+        /* Two-column layout */
+        .cert-page-layout {
+            display: flex;
+            gap: 2rem;
+            align-items: flex-start;
+        }
+
+        .cert-sidebar {
+            width: 280px;
+            min-width: 280px;
+            position: sticky;
+            top: 100px;
+        }
+
+        .cert-sidebar-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--primary-purple);
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--primary-purple);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .cert-frame-link {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem 1.2rem;
+            margin-bottom: 0.75rem;
+            background: var(--white);
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            border-left: 4px solid var(--primary-purple);
+            text-decoration: none;
+            color: var(--text-dark);
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .cert-frame-link:hover {
+            transform: translateX(6px);
+            box-shadow: 0 4px 16px rgba(123, 31, 162, 0.2);
+            border-left-color: #e91e63;
+            background: linear-gradient(135deg, #faf5ff 0%, #fff 100%);
+        }
+
+        .cert-frame-link .frame-icon {
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .cert-frame-link .frame-text {
+            line-height: 1.4;
+        }
+
+        .cert-frame-link.active {
+            background: linear-gradient(135deg, #7b1fa2 0%, #9c27b0 100%);
+            color: white;
+            border-left-color: #e91e63;
+            box-shadow: 0 4px 16px rgba(123, 31, 162, 0.3);
+        }
+
+        .cert-main-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        /* Responsive Table */
+        @media (max-width: 768px) {
+            .cert-page-layout {
+                flex-direction: column;
+            }
+
+            .cert-sidebar {
+                width: 100%;
+                min-width: unset;
+                position: static;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+
+            .cert-sidebar-title {
+                width: 100%;
+            }
+
+            .cert-frame-link {
+                flex: 1 1 calc(50% - 0.5rem);
+                min-width: 140px;
+                margin-bottom: 0;
+                font-size: 0.85rem;
+                padding: 0.75rem 1rem;
+            }
+
+            .cert-table thead {
+                display: none;
+            }
+
+            .cert-table,
+            .cert-table tbody,
+            .cert-table tr,
+            .cert-table td {
+                display: block;
+                width: 100%;
+            }
+
+            .cert-table tr {
+                margin-bottom: 1rem;
+                background: var(--white);
+                border-radius: 8px;
+                box-shadow: 0 2px 4px var(--shadow);
+                padding: 1rem;
+            }
+
+            .cert-table td {
+                padding: 0.5rem 0;
+                text-align: right;
+                position: relative;
+                padding-left: 40%;
+                border-bottom: 1px solid #f0f0f0;
+            }
+
+            .cert-table td:last-child {
+                border-bottom: none;
+                margin-top: 0.5rem;
+                text-align: center;
+                padding-left: 0;
+            }
+
+            .cert-table td::before {
+                content: attr(data-label);
+                position: absolute;
+                left: 0;
+                width: 40%;
+                text-align: left;
+                font-weight: 600;
+                color: var(--text-gray);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="main-header">
+        <div class="header-content">
+            <div class="header-title-th">กลุ่มพัฒนาครูและบุคลากรทางการศึกษา</div>
+            <div class="header-title-en">Teacher and Educational Personnel Development Group</div>
+        </div>
+    </header>
+    <nav class="sticky-nav">
+        <div class="nav-container">
+            <ul class="nav-menu"></ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1 class="section-title">🏆 คลังเกียรติบัตร (Certificate Bank)</h1>
+
+        <div class="cert-page-layout">
+            <!-- Left Sidebar: Award Frame Links -->
+            <aside class="cert-sidebar">
+                <div class="cert-sidebar-title">🏅 กรอบเกียรติบัตร</div>
+                <a href="#" class="cert-frame-link" data-course="ครูดีในดวงใจ">
+                    <span class="frame-icon">💖</span>
+                    <span class="frame-text">รางวัลครูดีในดวงใจ</span>
+                </a>
+                <a href="#" class="cert-frame-link" data-course="ครูและบุคลากรทางการศึกษาดีเด่น">
+                    <span class="frame-icon">🎖️</span>
+                    <span class="frame-text">รางวัลครูและบุคลากรทางการศึกษาดีเด่น</span>
+                </a>
+                <a href="#" class="cert-frame-link" data-course="พัฒนาครูผู้ช่วยสู่การเป็นครูมืออาชีพ">
+                    <span class="frame-icon">🎓</span>
+                    <span class="frame-text">รางวัลพัฒนาครูผู้ช่วยสู่การเป็นครูมืออาชีพ</span>
+                </a>
+            </aside>
+
+            <!-- Main Content -->
+            <div class="cert-main-content">
+                <!-- Hero Section -->
+                <div
+                    style="text-align: center; margin-bottom: 2rem; padding: 2rem; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border-radius: 16px;">
+                    <div style="font-size: 4rem; margin-bottom: 1rem;">🎓</div>
+                    <h2 style="color: var(--primary-purple); margin-bottom: 0.5rem;">ค้นหาเกียรติบัตรของคุณ</h2>
+                    <p style="color: var(--text-gray); font-size: 1.1rem;">พิมพ์ชื่อ-นามสกุล
+                        เพื่อตรวจสอบและดาวน์โหลดเอกสาร</p>
+                </div>
+
+                <div class="search-container">
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <div style="position: relative; flex: 2; min-width: 200px;">
+                            <span class="search-icon">🔍</span>
+                            <input type="text" id="cert-search" class="search-input" placeholder="พิมพ์ชื่อ-สกุล...">
+                        </div>
+
+                        <div style="flex: 1; min-width: 150px;">
+                            <select id="filter-year" class="search-input" style="padding-left: 1rem;">
+                                <option value="">📅 ปีทั้งหมด</option>
+                            </select>
+                        </div>
+
+                        <div style="flex: 1; min-width: 150px;">
+                            <select id="filter-course" class="search-input" style="padding-left: 1rem;">
+                                <option value="">📘 หลักสูตรทั้งหมด</option>
+                            </select>
+                        </div>
+
+                        <div style="flex: 1; min-width: 150px;">
+                            <select id="filter-type" class="search-input" style="padding-left: 1rem;">
+                                <option value="">🎓 ประเภททั้งหมด</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="cert-loading" style="text-align: center; color: var(--text-gray); display: none;">
+                    กำลังโหลดข้อมูล...
+                </div>
+                <div id="cert-empty" style="text-align: center; color: var(--text-gray); padding: 2rem; display: none;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">❌</div>
+                    ไม่พบข้อมูลที่ค้นหา
+                </div>
+
+                <div class="cert-table-container">
+                    <table class="cert-table" id="cert-table">
+                        <thead>
+                            <tr>
+                                <th width="30%">ชื่อ-สกุล</th>
+                                <th width="25%">หลักสูตร</th>
+                                <th width="15%">ปี</th>
+                                <th width="15%">ประเภท</th>
+                                <th width="15%">เอกสาร</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cert-tbody">
+                            <!-- Data will be injected here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer Placeholder (Functions as both Logos and Footer) -->
+    <div id="footer-placeholder"></div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="assets/js/firebase-config.js"></script>
+    <script src="assets/js/data.js?v=4"></script>
+    <script src="assets/js/main.js?v=4"></script>
+    <script>
+        // Custom Script for Certificate Search
+        document.addEventListener('DOMContentLoaded', async () => {
+            const tbody = document.getElementById('cert-tbody');
+            const searchInput = document.getElementById('cert-search');
+            const filterYear = document.getElementById('filter-year');
+            const filterType = document.getElementById('filter-type');
+            const filterCourse = document.getElementById('filter-course');
+
+            const loading = document.getElementById('cert-loading');
+            const empty = document.getElementById('cert-empty');
+            const table = document.getElementById('cert-table');
+
+            let allCerts = [];
+
+            // 🟢 ลิงก์จาก Google Sheet (เปลี่ยนตรงนี้)
+            const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTRZKKSC38bKraDDdDE5hjVGQtbr1e0inwEK63m73tJAnYaNNo_AbxbGX_IF__eEwRC7_JGB0-dQiDP/pub?output=csv";
+
+
+
+            // 1. Fetch Data (Supports both JSON and CSV)
+            try {
+                loading.style.display = 'block';
+
+                // ถ้ามีลิงก์ Google Sheet ให้โหลดจาก Sheet, ถ้าไม่มีให้โหลดจากไฟล์ JSON เดิม (Backup)
+                const url = GOOGLE_SHEET_CSV_URL;
+
+                const res = await fetch(url);
+                if (res.ok) {
+                    if (GOOGLE_SHEET_CSV_URL) {
+                        const text = await res.text();
+                        allCerts = parseCSV(text);
+                    } else {
+                        allCerts = await res.json();
+                    }
+
+                    // 1.5 Trim type data (keep raw value from Google Sheets)
+                    allCerts = allCerts.map(item => {
+                        return { ...item, type: (item.type || '').trim() };
+                    });
+
+
+                    populateYearFilter(allCerts); // สร้างตัวเลือกปี
+                    populateCourseFilter(allCerts); // สร้างตัวเลือกหลักสูตร
+                    populateTypeFilter(allCerts); // สร้างตัวเลือกประเภท
+
+                    // 2. Hybrid View: Show only last 10 items initially
+                    const recentCerts = allCerts.slice(0, 10);
+                    renderTable(recentCerts);
+
+                    // Optional: Add indicator
+                    if (allCerts.length > 10) {
+                        // We could add a "Showing recent..." label here if we had a dedicated element
+                    }
+
+                } else {
+                    console.error("Failed to load certificates");
+                    empty.innerHTML = `❌ ไม่สามารถโหลดข้อมูลได้ <br><small>(${res.status} ${res.statusText})</small>`;
+                    empty.style.display = 'block';
+                }
+            } catch (e) {
+                console.error(e);
+                empty.innerHTML = `❌ เกิดข้อผิดพลาด: ${e.message}`;
+                empty.style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
+            }
+
+            // CSV Parser Helper
+            function parseCSV(text) {
+                const rows = text.split('\n').filter(r => r.trim() !== '');
+                const headers = rows[0].split(',').map(h => h.trim().replace(/^"|"$/g, '')); // Remove content quotes
+
+                return rows.slice(1).map(row => {
+                    // Handle quotes in CSV (Simple parser)
+                    const values = [];
+                    let inQuote = false;
+                    let currentVal = '';
+
+                    for (let i = 0; i < row.length; i++) {
+                        const char = row[i];
+                        if (char === '"') {
+                            inQuote = !inQuote;
+                        } else if (char === ',' && !inQuote) {
+                            values.push(currentVal.trim().replace(/^"|"$/g, ''));
+                            currentVal = '';
+                        } else {
+                            currentVal += char;
+                        }
+                    }
+                    values.push(currentVal.trim().replace(/^"|"$/g, '')); // Last value
+
+                    // Map to Object
+                    const obj = {};
+                    headers.forEach((h, index) => {
+                        obj[h] = values[index] || '';
+                    });
+                    return obj;
+                });
+            }
+
+            // 1.5 Populate Year Filter Dynamically
+            function populateYearFilter(data) {
+                if (!data) return;
+                // Extract unique years
+                const years = [...new Set(data.map(item => item.year).filter(y => y))].sort().reverse();
+
+                // Clear existing options except the first one
+                filterYear.innerHTML = '<option value="">📅 ปีทั้งหมด</option>';
+
+                years.forEach(year => {
+                    const option = document.createElement('option');
+                    option.value = year;
+                    option.innerText = year;
+                    filterYear.appendChild(option);
+                });
+            }
+
+            // 1.6 Populate Course Filter
+            function populateCourseFilter(data) {
+                if (!data) return;
+                const courses = [...new Set(data.map(item => item.course).filter(c => c && c.trim() !== '-'))].sort();
+
+                filterCourse.innerHTML = '<option value="">📘 หลักสูตรทั้งหมด</option>';
+                courses.forEach(course => {
+                    const option = document.createElement('option');
+                    option.value = course;
+                    option.innerText = course;
+                    filterCourse.appendChild(option);
+                });
+            }
+
+            // 1.7 Populate Type Filter Dynamically
+            function populateTypeFilter(data) {
+                if (!data) return;
+                const types = [...new Set(data.map(item => item.type).filter(t => t && t.trim() !== '' && t.trim() !== '-'))].sort();
+
+                filterType.innerHTML = '<option value="">🎓 ประเภททั้งหมด</option>';
+                types.forEach(type => {
+                    const option = document.createElement('option');
+                    option.value = type;
+                    option.innerText = type;
+                    filterType.appendChild(option);
+                });
+            }
+
+            // 2. Render Function (Updated for Course)
+            function renderTable(data) {
+                if (!data || data.length === 0) {
+                    table.style.display = 'none';
+                    empty.style.display = 'block';
+                    return;
+                }
+
+                table.style.display = 'table';
+                empty.style.display = 'none';
+
+                tbody.innerHTML = data.map(cert => {
+                    const typeLabel = cert.type || '-';
+                    const typeColor = '#7b1fa2';
+                    // Helper to get ID from various Drive URL formats
+                    const getDriveId = (url) => {
+                        if (!url) return null;
+                        const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
+                        return match ? match[1] : null;
+                    };
+
+                    const driveId = getDriveId(cert.link);
+                    let viewUrl = cert.link;
+                    let downloadUrl = cert.link;
+
+                    if (driveId) {
+                        viewUrl = `https://drive.google.com/file/d/${driveId}/view?usp=sharing`;
+                        downloadUrl = `https://drive.google.com/uc?export=download&id=${driveId}`;
+                    }
+
+                    const isLinkValid = cert.link && cert.link.length > 2;
+
+                    let actionsHtml = `<span style="color:#ccc;">-</span>`;
+
+                    if (isLinkValid) {
+                        actionsHtml = `
+                            <div style="display: flex; gap: 5px; justify-content: flex-start;">
+                                <a href="#" onclick="openPopup('${viewUrl}'); return false;" class="cert-link">
+                                    ⬇️ ดาวน์โหลด
+                                </a>
+                            </div>
+                        `;
+
+                    }
+
+                    return `
+                    <tr>
+                        <td data-label="ชื่อ-สกุล"><strong>${cert.name}</strong></td>
+                        <td data-label="หลักสูตร">${cert.course || '-'}</td>
+                        <td data-label="ปี">${cert.year}</td>
+                        <td data-label="ประเภท"><span style="color:${typeColor}; font-weight:600;">${typeLabel}</span></td>
+                        <td data-label="เอกสาร">${actionsHtml}</td>
+                    </tr>
+                `}).join('');
+            }
+
+            // 3. Search Logic (Combined)
+            function filterData() {
+                const term = searchInput.value.toLowerCase().trim();
+                const year = filterYear.value;
+                const type = filterType.value;
+                const course = filterCourse.value;
+
+                console.log("Filtering:", { term, year, type, course });
+
+                // 0. Check if search is cleared -> Show "Recent 10" again
+                if (!term && !year && !type && !course) {
+                    renderTable(allCerts.slice(0, 10));
+                    return;
+                }
+
+                const filtered = allCerts.filter(c => {
+                    // 1. Check Year
+                    if (year && c.year !== year) return false;
+
+                    // 2. Check Type
+                    if (type && c.type !== type) return false;
+
+                    // 3. Check Course
+                    if (course && c.course !== course) return false;
+
+                    // 4. Check Text Search
+                    if (term) {
+                        return c.name.toLowerCase().includes(term) ||
+                            (c.course && c.course.toLowerCase().includes(term));
+                    }
+
+                    return true;
+                });
+
+                renderTable(filtered);
+            }
+
+            // Event Listeners
+            searchInput.addEventListener('input', filterData);
+            filterYear.addEventListener('change', filterData);
+            filterType.addEventListener('change', filterData);
+            filterCourse.addEventListener('change', filterData);
+
+            // Sidebar Frame Link Click Handlers
+            document.querySelectorAll('.cert-frame-link[data-course]').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const courseName = link.dataset.course;
+
+                    // Toggle: if already active, reset filter
+                    if (link.classList.contains('active')) {
+                        link.classList.remove('active');
+                        filterCourse.value = '';
+                        filterData();
+                        return;
+                    }
+
+                    // Remove active from all links
+                    document.querySelectorAll('.cert-frame-link').forEach(l => l.classList.remove('active'));
+                    link.classList.add('active');
+
+                    // Set the course filter dropdown to match
+                    // Try exact match first, then partial match
+                    let matched = false;
+                    for (let opt of filterCourse.options) {
+                        if (opt.value === courseName) {
+                            filterCourse.value = courseName;
+                            matched = true;
+                            break;
+                        }
+                    }
+
+                    // If no exact match in dropdown, filter directly
+                    if (!matched) {
+                        filterCourse.value = '';
+                        // Filter manually by course name
+                        const filtered = allCerts.filter(c => {
+                            const cCourse = (c.course || '').trim();
+                            return cCourse.includes(courseName) || courseName.includes(cCourse);
+                        });
+                        renderTable(filtered);
+
+                        // Scroll to table
+                        document.querySelector('.cert-table-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        return;
+                    }
+
+                    filterData();
+
+                    // Scroll to table
+                    document.querySelector('.cert-table-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                });
+            });
+
+            // Sync sidebar active state when dropdown changes
+            filterCourse.addEventListener('change', () => {
+                document.querySelectorAll('.cert-frame-link').forEach(l => {
+                    if (l.dataset.course === filterCourse.value) {
+                        l.classList.add('active');
+                    } else {
+                        l.classList.remove('active');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>
