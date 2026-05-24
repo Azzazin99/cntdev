@@ -8,6 +8,9 @@
 
 <svelte:head>
 	<title>เข้าสู่ระบบ - กลุ่มพัฒนาครูฯ</title>
+	{#if data.turnstileSiteKey}
+		<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+	{/if}
 </svelte:head>
 
 <div class="container">
@@ -43,6 +46,12 @@
 				autocomplete="current-password"
 				required
 			>
+
+			{#if data.turnstileSiteKey}
+				<div class="turnstile-wrap">
+					<div class="cf-turnstile" data-sitekey={data.turnstileSiteKey}></div>
+				</div>
+			{/if}
 
 			<div class="actions">
 				<button class="btn primary" type="submit">เข้าสู่ระบบ</button>
@@ -93,6 +102,11 @@
 		outline: none;
 		border-color: var(--primary-purple);
 		box-shadow: 0 4px 12px rgba(123, 31, 162, 0.2);
+	}
+
+	.turnstile-wrap {
+		margin-top: 1rem;
+		min-height: 65px;
 	}
 
 	.actions {

@@ -4,6 +4,12 @@ import {
 	createSessionToken,
 	getAuthConfigStatus
 } from '$lib/server/localAuth';
+import { getClientIp } from '$lib/server/rateLimit';
+import {
+	getTurnstileSiteKey,
+	isTurnstileEnabled,
+	verifyTurnstileToken
+} from '$lib/server/turnstile';
 
 export function load({ locals, url }) {
 	const redirectTo = url.searchParams.get('redirect') || '/admin';
@@ -11,11 +17,16 @@ export function load({ locals, url }) {
 		throw redirect(302, redirectTo);
 	}
 
-	return { redirectTo };
+	return {
+		redirectTo,
+		turnstileSiteKey: getTurnstileSiteKey(),
+		turnstileEnabled: isTurnstileEnabled()
+	};
 }
 
 export const actions = {
-	default: async ({ locals, request, cookies, url }) => {
+	default: async (event) => {
+		const { request, cookies, url } = event;
 		const form = await request.formData();
 		const username = String(form.get('username') || '');
 		const password = String(form.get('password') || '');
@@ -33,6 +44,17 @@ export const actions = {
 				error:
 					'ยังไม่ได้ตั้ง AUTH_SESSION_SECRET ใน Environment Variables (สุ่มสตริงยาว 32+ ตัว แล้ว Redeploy)'
 			});
+		}
+
+		if (isTurnstileEnabled()) {
+			const turnstileToken = String(form.get('cf-turnstile-response') || '');
+			const ip = getClientIp(event);
+			const turnstile = await verifyTurnstileToken(turnstileToken, ip);
+			if (!turnstile.success) {
+				return fail(400, {
+					error: 'การยืนยันตัวตนไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'
+				});
+			}
 		}
 
 		const user = authenticateAdmin(username, password);
