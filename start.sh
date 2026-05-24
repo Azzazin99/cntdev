@@ -1,7 +1,7 @@
 #!/bin/bash
 # Script to start a local static server for the project
 
-PORT=6395
+PORT=${PORT:-6395}
 URL="http://localhost:$PORT"
 
 echo "=================================================="

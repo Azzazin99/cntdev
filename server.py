@@ -5,7 +5,12 @@ import os
 import socket
 import sys
 
-PORT = 6395
+DEFAULT_PORT = 6395
+# Allow overriding port via environment variable: PORT=3001 python3 server.py
+try:
+    PORT = int(os.getenv('PORT', str(DEFAULT_PORT)))
+except ValueError:
+    PORT = DEFAULT_PORT
 DATA_FILE = 'assets/data/news.json'
 
 def check_port_available(port):
