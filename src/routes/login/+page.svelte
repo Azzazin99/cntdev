@@ -2,6 +2,7 @@
 	export let data;
 	export let form;
 
+	let username = 'admin';
 	let password = '';
 </script>
 
@@ -12,14 +13,27 @@
 <div class="container">
 	<div class="login-card">
 		<h2 class="title">🔐 เข้าสู่ระบบแอดมิน</h2>
-		<p class="subtitle">กรอกรหัสผ่านเพื่อเข้าหน้าจัดการข่าวและเนื้อหาเว็บ</p>
+		<p class="subtitle">กรอกชื่อผู้ใช้และรหัสผ่านเพื่อเข้าหน้าจัดการข่าวและเนื้อหาเว็บ</p>
 
 		{#if form?.error}
 			<div class="alert error">❌ {form.error}</div>
 		{/if}
 
 		<form method="POST" action={`?redirect=${encodeURIComponent(data.redirectTo)}`}>
-			<label class="label" for="password">รหัสผ่านแอดมิน</label>
+			<label class="label" for="username">ชื่อผู้ใช้</label>
+			<input
+				id="username"
+				name="username"
+				type="text"
+				class="input"
+				bind:value={username}
+				autocomplete="username"
+				autocapitalize="off"
+				spellcheck="false"
+				required
+			>
+
+			<label class="label" for="password">รหัสผ่าน</label>
 			<input
 				id="password"
 				name="password"

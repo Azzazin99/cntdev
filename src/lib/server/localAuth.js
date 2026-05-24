@@ -52,15 +52,25 @@ function getSessionSecret() {
 	return secret;
 }
 
-/** @param {string} password */
-export function authenticateAdminPassword(password) {
+/** Fixed admin username for the public login form */
+export const ADMIN_USERNAME = 'admin';
+
+/** @param {string} username @param {string} password */
+export function authenticateAdmin(username, password) {
+	const u = String(username || '').trim();
 	const p = String(password || '');
 	const adminPassword = getAdminPassword();
 
-	if (!p || !adminPassword) return null;
+	if (!u || !p || !adminPassword) return null;
+	if (!timingSafeEqualStr(u, ADMIN_USERNAME)) return null;
 	if (!timingSafeEqualStr(p, adminPassword)) return null;
 
-	return { email: 'admin', role: 'admin' };
+	return { email: ADMIN_USERNAME, role: 'admin' };
+}
+
+/** @param {string} password */
+export function authenticateAdminPassword(password) {
+	return authenticateAdmin(ADMIN_USERNAME, password);
 }
 
 export function createSessionToken(payload, ttlSeconds = 60 * 60 * 12) {

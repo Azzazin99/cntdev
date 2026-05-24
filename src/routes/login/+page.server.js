@@ -1,6 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import {
-	authenticateAdminPassword,
+	authenticateAdmin,
 	createSessionToken,
 	getAuthConfigStatus
 } from '$lib/server/localAuth';
@@ -17,6 +17,7 @@ export function load({ locals, url }) {
 export const actions = {
 	default: async ({ locals, request, cookies, url }) => {
 		const form = await request.formData();
+		const username = String(form.get('username') || '');
 		const password = String(form.get('password') || '');
 
 		const config = getAuthConfigStatus();
@@ -34,9 +35,9 @@ export const actions = {
 			});
 		}
 
-		const user = authenticateAdminPassword(password);
+		const user = authenticateAdmin(username, password);
 		if (!user) {
-			return fail(400, { error: 'รหัสผ่านไม่ถูกต้อง' });
+			return fail(400, { error: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' });
 		}
 
 		let token;
