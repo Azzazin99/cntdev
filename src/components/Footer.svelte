@@ -2,23 +2,23 @@
 	<!-- Logo Section -->
 	<section class="logo-section">
 		<div class="logo-grid">
-			<a href="https://www.moe.go.th" target="_blank" class="logo-link" title="กระทรวงศึกษาธิการ">
-				<img src="/assets/images/logos/moe.png" alt="กระทรวงศึกษาธิการ">
+			<a href="https://www.moe.go.th" target="_blank" rel="noopener noreferrer" class="logo-link" title="กระทรวงศึกษาธิการ">
+				<img src="/assets/images/logos/moe.png" alt="กระทรวงศึกษาธิการ" loading="lazy" decoding="async">
 			</a>
-			<a href="https://www.ocsc.go.th" target="_blank" class="logo-link" title="ก.ค.ศ.">
-				<img src="/assets/images/logos/ocsc.png" alt="ก.ค.ศ.">
+			<a href="https://www.ocsc.go.th" target="_blank" rel="noopener noreferrer" class="logo-link" title="ก.ค.ศ.">
+				<img src="/assets/images/logos/ocsc.png" alt="ก.ค.ศ." loading="lazy" decoding="async">
 			</a>
-			<a href="https://www.obec.go.th" target="_blank" class="logo-link" title="สพฐ.">
-				<img src="/assets/images/logos/obec.png" alt="สพฐ.">
+			<a href="https://www.obec.go.th" target="_blank" rel="noopener noreferrer" class="logo-link" title="สพฐ.">
+				<img src="/assets/images/logos/obec.png" alt="สพฐ." loading="lazy" decoding="async">
 			</a>
-			<a href="https://www.otepc.go.th" target="_blank" class="logo-link" title="อปท.">
-				<img src="/assets/images/logos/otepc.png" alt="อปท.">
+			<a href="https://www.otepc.go.th" target="_blank" rel="noopener noreferrer" class="logo-link" title="อปท.">
+				<img src="/assets/images/logos/otepc.png" alt="อปท." loading="lazy" decoding="async">
 			</a>
-			<a href="https://personnel.obec.go.th" target="_blank" class="logo-link" title="ระบบบุคลากร">
-				<img src="/assets/images/logos/personnel.png" alt="ระบบบุคลากร">
+			<a href="https://personnel.obec.go.th" target="_blank" rel="noopener noreferrer" class="logo-link" title="ระบบบุคลากร">
+				<img src="/assets/images/logos/personnel.png" alt="ระบบบุคลากร" loading="lazy" decoding="async">
 			</a>
-			<a href="https://hrms.moe.go.th" target="_blank" class="logo-link" title="HRMS">
-				<img src="/assets/images/logos/hrms.png" alt="HRMS">
+			<a href="https://hrms.moe.go.th" target="_blank" rel="noopener noreferrer" class="logo-link" title="HRMS">
+				<img src="/assets/images/logos/hrms.png" alt="HRMS" loading="lazy" decoding="async">
 			</a>
 		</div>
 	</section>
@@ -35,8 +35,8 @@
 
 <style>
 	.main-footer {
-		background: var(--primary-purple);
-		color: white;
+		background: var(--primary-purple-dark);
+		color: var(--text-on-primary);
 		padding: 2rem 0;
 		text-align: center;
 	}
@@ -79,7 +79,7 @@
 		background: var(--white);
 		padding: 3rem 0;
 		margin-bottom: 0;
-		border-top: 1px solid #eee;
+		border-top: 1px solid var(--border-neutral);
 	}
 
 	.logo-grid {
@@ -100,8 +100,7 @@
 	}
 
 	.logo-link:hover {
-		transform: scale(1.1);
-		opacity: 0.9;
+		opacity: 0.88;
 	}
 
 	.logo-link img {

@@ -150,7 +150,8 @@
 </svelte:head>
 
 <div class="container">
-	<h2 class="section-title">🏆 คลังเกียรติบัตร (Certificate Bank)</h2>
+	<!-- Emoji in titles: intentional Thai gov / school site convention -->
+	<h1 class="page-title page-title--with-icon">🏆 คลังเกียรติบัตร</h1>
 	
 	{#if loading}
 		<div class="loading-state">
@@ -247,7 +248,7 @@
 						<p>ไม่พบข้อมูลที่ค้นหา</p>
 					</div>
 				{:else}
-					<div class="cert-table-container">
+					<div class="cert-table-container" role="region" aria-label="ตารางผลการค้นหาเกียรติบัตร">
 						<table class="cert-table">
 							<thead>
 								<tr>
@@ -356,8 +357,10 @@
 		text-align: center;
 		margin-bottom: 2rem;
 		padding: 2rem;
-		background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+		background: var(--white);
+		border: 1px solid var(--border-subtle);
 		border-radius: 16px;
+		box-shadow: 0 1px 3px var(--shadow);
 	}
 	
 	.hero-icon {
@@ -407,24 +410,22 @@
 		margin-bottom: 0.75rem;
 		background: var(--white);
 		border-radius: 12px;
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-		border: none;
-		border-left: 4px solid var(--primary-purple);
+		box-shadow: 0 1px 3px var(--shadow);
+		border: 1px solid var(--border-subtle);
 		text-decoration: none;
 		color: var(--text-dark);
 		font-weight: 600;
 		font-size: 0.95rem;
-		transition: all 0.3s ease;
+		transition: box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
 		cursor: pointer;
 		text-align: left;
 		width: 100%;
 	}
 
 	.cert-frame-link:hover {
-		transform: translateX(6px);
-		box-shadow: 0 4px 16px rgba(123, 31, 162, 0.2);
-		border-left-color: #e91e63;
-		background: linear-gradient(135deg, #faf5ff 0%, #fff 100%);
+		box-shadow: 0 3px 10px var(--shadow);
+		border-color: var(--border-hover);
+		background: var(--primary-purple-light);
 	}
 
 	.cert-frame-link .frame-icon {
@@ -437,10 +438,10 @@
 	}
 
 	.cert-frame-link.active {
-		background: linear-gradient(135deg, #7b1fa2 0%, #9c27b0 100%);
-		color: white;
-		border-left-color: #e91e63;
-		box-shadow: 0 4px 16px rgba(123, 31, 162, 0.3);
+		background: var(--btn-primary-bg);
+		color: var(--btn-primary-text);
+		border-color: var(--btn-primary-hover);
+		box-shadow: 0 2px 8px var(--shadow);
 	}
 
 	.cert-main-content {
@@ -479,45 +480,52 @@
 		padding: 0.8rem 1rem;
 		padding-left: 3rem;
 		font-size: 1rem;
-		border: 2px solid #ddd;
+		border: 1px solid var(--border-subtle);
 		border-radius: 50px;
 		font-family: inherit;
-		transition: all 0.3s;
+		transition: border-color 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
 		background: var(--white);
 		color: var(--text-dark);
 	}
-	
-	.search-input:focus {
-		outline: none;
+
+	.search-input:focus-visible {
 		border-color: var(--primary-purple);
-		box-shadow: 0 4px 12px rgba(123, 31, 162, 0.2);
+		box-shadow: 0 0 0 3px var(--color-info-bg);
 	}
-	
+
 	.cert-table-container {
 		background: var(--white);
 		border-radius: 12px;
-		box-shadow: 0 4px 12px var(--shadow);
-		overflow: hidden;
+		box-shadow: 0 1px 3px var(--shadow);
+		border: 1px solid var(--border-subtle);
+		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
 	}
 	
 	.cert-table {
 		width: 100%;
 		border-collapse: collapse;
+		font-variant-numeric: tabular-nums;
 	}
 	
 	.cert-table th,
 	.cert-table td {
 		padding: 1rem 1.5rem;
 		text-align: left;
-		border-bottom: 1px solid #eee;
+		border-bottom: 1px solid var(--border-neutral);
 	}
-	
+
 	.cert-table th {
-		background: var(--primary-purple);
-		color: white;
+		background: var(--btn-primary-bg);
+		color: var(--btn-primary-text);
 		font-weight: 600;
 	}
 	
+	.cert-table tbody tr {
+		content-visibility: auto;
+		contain-intrinsic-size: auto 64px;
+	}
+
 	.cert-table tr:hover {
 		background: var(--bg-gray);
 	}
@@ -551,88 +559,26 @@
 	}
 
 	.cert-view-btn {
-		background: #2563eb;
-		color: white;
+		background: var(--btn-primary-bg);
+		color: var(--btn-primary-text);
 	}
 
 	.cert-view-btn:hover {
-		background: #1d4ed8;
+		background: var(--btn-primary-hover);
 	}
-	
+
 	.cert-link-btn {
 		background: var(--primary-purple-light);
-		color: var(--primary-purple);
+		color: var(--primary-purple-dark);
 	}
-	
+
 	.cert-link-btn:hover {
-		background: var(--primary-purple);
-		color: white;
+		background: var(--btn-primary-bg);
+		color: var(--btn-primary-text);
 	}
-	
+
 	.no-link {
-		color: #ccc;
-	}
-	
-	.pagination {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		margin-top: 1.5rem;
-		padding: 1rem 0;
-		border-top: 1px solid #eaeaea;
-	}
-	
-	.pagination-info {
 		color: var(--text-gray);
-		font-size: 0.9rem;
-	}
-	
-	.pagination-controls {
-		display: flex;
-		gap: 0.25rem;
-	}
-	
-	.page-btn {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		min-width: 36px;
-		height: 36px;
-		padding: 0 8px;
-		border-radius: 6px;
-		font-size: 0.875rem;
-		font-weight: 500;
-		color: #666;
-		background: transparent;
-		border: 1px solid transparent;
-		cursor: pointer;
-		transition: all 0.2s;
-		font-family: inherit;
-	}
-	
-	.page-btn:hover:not(:disabled) {
-		background-color: #f5f5f5;
-		color: #111;
-	}
-	
-	.page-btn.active {
-		background-color: var(--primary-purple);
-		color: white;
-		border-color: var(--primary-purple);
-	}
-	
-	.page-btn:disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
-	}
-	
-	.page-btn.nav-btn {
-		border: 1px solid #eaeaea;
-		background: white;
-	}
-	
-	.page-btn.nav-btn:hover:not(:disabled) {
-		border-color: #ccc;
 	}
 	
 	@media (max-width: 768px) {
@@ -688,34 +634,43 @@
 			box-shadow: 0 2px 4px var(--shadow);
 			padding: 1rem;
 		}
-		
+
 		.cert-table td {
+			display: flex;
+			flex-direction: column;
+			align-items: flex-start;
+			gap: 0.25rem;
 			padding: 0.5rem 0;
-			text-align: right;
-			position: relative;
-			padding-left: 40%;
-			border-bottom: 1px solid #f0f0f0;
+			text-align: left;
+			border-bottom: 1px solid var(--border-neutral);
 		}
-		
+
 		.cert-table td:last-child {
 			border-bottom: none;
-			text-align: center;
-			padding-left: 0;
+			align-items: stretch;
 		}
-		
+
 		.cert-table td::before {
 			content: attr(data-label);
-			position: absolute;
-			left: 0;
-			width: 40%;
-			text-align: left;
 			font-weight: 600;
+			font-size: var(--text-sm);
 			color: var(--text-gray);
 		}
-		
-		.pagination {
-			flex-direction: column;
-			gap: 1rem;
+
+		.cert-actions {
+			width: 100%;
+		}
+
+		.cert-view-btn,
+		.cert-link-btn {
+			flex: 1 1 auto;
+			min-width: min(100%, 140px);
+		}
+	}
+
+	@media (max-width: 380px) {
+		.cert-frame-link {
+			flex: 1 1 100%;
 		}
 	}
 </style>

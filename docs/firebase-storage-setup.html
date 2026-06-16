@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>เปิด Cloud Storage สำหรับอัปโหลด PDF/รูป (production)</title>
+  <link rel="stylesheet" href="./doc.css">
+</head>
+<body>
+  <main class="doc">
+    <h1>เปิด Cloud Storage สำหรับอัปโหลด PDF/รูป (production)</h1>
+    <blockquote>
+    <p><strong>Legacy:</strong> ตั้งแต่ Phase 1 ไฟล์ใหม่อัปโหลดไป <strong>Vercel Blob</strong> แล้ว — ดู <a href="./vercel-blob-setup.html">vercel-blob-setup.html</a>. เอกสารนี้เก็บไว้สำหรับไฟล์เก่าบน Firebase Storage เท่านั้น</p>
+    </blockquote>
+    <p>โปรเจกต์: <strong>cntdev-e49f5</strong><br>Console: <a href="https://console.firebase.google.com/project/cntdev-e49f5">https://console.firebase.google.com/project/cntdev-e49f5</a></p>
+    <blockquote>
+    <p>เมนู <strong>Build → Storage</strong> ในเอกสารเก่าไม่มีแล้ว — ใช้ <strong>Databases &amp; Storage → Storage</strong> แทน</p>
+    </blockquote>
+    <h2>ทำไมต้องเปิด Storage</h2>
+    <ul>
+    <li><strong>Firestore</strong> เก็บข้อความข่าว (หัวข้อ, วันที่, ลิงก์) ได้อยู่แล้ว</li>
+    <li><strong>Cloud Storage</strong> เก็บไฟล์ PDF/รูป — ถ้ายังไม่เปิด บน Vercel อัปโหลดไฟล์จาก admin จะไม่สำเร็จ</li>
+    </ul>
+    <p><strong>ทางเลือกชั่วคราว:</strong> ใน admin ข่าว → ไม่อัปโหลด PDF → วาง <strong>ลิงก์ Google Drive</strong> ในช่อง「ลิงก์เอกสาร」แทน (ทำงานได้ทันทีโดยไม่ต้องเปิด Storage)</p>
+    <hr>
+    <h2>ขั้นตอนใน Firebase Console (UI ปัจจุบัน)</h2>
+    <ol>
+    <li>เปิด <a href="https://console.firebase.google.com">Firebase Console</a> → เลือกโปรเจกต์ <strong>cntdev-e49f5</strong></li>
+    <li>แถบซ้าย → <strong>Databases &amp; Storage</strong> (อาจต้องกดลูกศรเพื่อขยาย)</li>
+    <li>คลิก <strong>Storage</strong></li>
+    <li>ถ้าเห็นปุ่ม <strong>Get started</strong> → กดแล้วทำตาม wizard</li>
+    <li>เลือก location (แนะนำ <code>asia-southeast1</code> หรือใกล้ผู้ใช้ในไทย)</li>
+    <li>เลือก security rules ตามที่ wizard แนะนำ (มักเริ่มจาก test mode แล้วค่อยเข้มงวดทีหลัง)</li>
+    </ol>
+    <h3>ถ้าไม่เห็น Storage / ขึ้นให้อัปเกรดแผน</h3>
+    <p>Cloud Storage for Firebase <strong>ต้องใช้แผน Blaze (pay-as-you-go)</strong>:</p>
+    <ol>
+    <li>แถบซ้ายล่าง → <strong>Upgrade</strong> (หรือ Project settings → Usage and billing)</li>
+    <li>อัปเกรดเป็น <strong>Blaze</strong></li>
+    <li>ตั้ง billing alert ใน Google Cloud (แนะนำ) — ใช้น้อยมักอยู่ใน free tier ของ Storage</li>
+    </ol>
+    <p>หลังเปิด Storage แล้ว → <strong>Redeploy</strong> บน Vercel แล้วลองอัปโหลด PDF อีกครั้ง</p>
+    <hr>
+    <h2>ทางเลือก: Google Cloud Console</h2>
+    <p>ถ้าใน Firebase ยังหาไม่เจอ:</p>
+    <ol>
+    <li><a href="https://console.cloud.google.com/storage/browser?project=cntdev-e49f5">https://console.cloud.google.com/storage/browser?project=cntdev-e49f5</a></li>
+    <li>ถ้ายังไม่มี bucket → <strong>Create bucket</strong></li>
+    <li>ชื่อ bucket มักเป็น <code>cntdev-e49f5.firebasestorage.app</code> หรือ <code>cntdev-e49f5.appspot.com</code> (ดูใน Firebase → Storage → Files หลังเปิดใช้)</li>
+    </ol>
+    <hr>
+    <h2>ตรวจว่าเปิดสำเร็จ</h2>
+    <p>ใน Firebase → <strong>Databases &amp; Storage → Storage → Files</strong> ควรเห็นหน้ารายการ bucket (อาจว่าง ยังไม่มีไฟล์)</p>
+    <p>จากนั้นอัปโหลด PDF จาก admin บน production ควรสำเร็จ และ <code>link</code> ในข่าวจะชี้ไป URL บน Storage</p>
+    <hr>
+    <h2>CORS สำหรับอัปโหลดตรงจาก browser (จำเป็นบน production)</h2>
+    <p>Admin อัปโหลด <strong>PDF และรูปภาพ</strong> <strong>ตรงไป bucket</strong> (ไม่ผ่าน body ของ Vercel Function) — browser ต้องได้รับอนุญาตจาก bucket</p>
+    <ol>
+    <li>เปิด <a href="https://console.cloud.google.com/storage/browser?project=cntdev-e49f5">Google Cloud Console → Cloud Storage → bucket ของโปรเจกต์</a></li>
+    <li>แท็บ <strong>Configuration</strong> → <strong>CORS</strong> → Edit</li>
+    <li>ใส่ config ตัวอย่าง (ปรับ origin ถ้ามีโดเมน custom):</li>
+    </ol>
+    <pre><code class="language-json">[
+      {
+        &quot;origin&quot;: [&quot;https://cntdev.vercel.app&quot;, &quot;http://localhost:6395&quot;, &quot;http://127.0.0.1:6395&quot;],
+        &quot;method&quot;: [&quot;PUT&quot;, &quot;GET&quot;, &quot;HEAD&quot;],
+        &quot;responseHeader&quot;: [&quot;Content-Type&quot;, &quot;x-goog-resumable&quot;],
+        &quot;maxAgeSeconds&quot;: 3600
+      }
+    ]
+    </code></pre>
+    <ol start="4">
+    <li>บันทึก แล้วลองอัปโหลด PDF จาก admin อีกครั้ง</li>
+    </ol>
+    <p>ถ้า CORS ไม่ตั้ง จะเห็นข้อความ <em>&quot;อัปโหลดไฟล์ไป Cloud Storage ไม่สำเร็จ&quot;</em> ใน admin</p>
+    <p><strong>ทางเลือก:</strong> ใช้ <code>gsutil cors set cors.json gs://YOUR_BUCKET_NAME</code> จากเครื่องที่ติดตั้ง Google Cloud SDK</p>
+    <hr>
+    <h2>Local dev (<code>npm run dev</code>)</h2>
+    <p>โปรเจกต์นี้รันที่ <strong><code>http://localhost:6395</code></strong> (ตั้งใน <code>vite.config.js</code>) — <strong>ไม่ใช่</strong> พอร์ต 5173 (พอร์ตนั้นมักเป็นโปรเจกต์อื่น เช่น kp7-react)</p>
+    <p>บน localhost ระบบจะ <strong>ไม่</strong> ส่ง PDF/รูปตรงจาก browser ไป bucket (เลี่ยง CORS) — อัปโหลดผ่าน API แล้ว server ใช้ Admin SDK แทน (หรือเขียนลง <code>static/</code> ถ้าไม่มี Storage)</p>
+    <p>ถ้าต้องการทดสอบ flow อัปโหลดตรงเหมือน production บนเครื่องตัวเอง:</p>
+    <ol>
+    <li>ตั้ง CORS ให้รวม <code>http://localhost:6395</code> (ดูด้านบน)</li>
+    <li>ใน <code>.env.local</code> ใส่ <code>PDF_DIRECT_UPLOAD_LOCAL=1</code></li>
+    </ol>
+
+  </main>
+</body>
+</html>

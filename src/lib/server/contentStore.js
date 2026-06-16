@@ -1,6 +1,17 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { getFirestore, getStorageBucket, isFirestoreEnabled } from '$lib/server/firebaseAdmin';
+import {
+	canWriteLocalStaticFiles,
+	getFirestore,
+	isFirestoreEnabled,
+	resolveStorageBucket,
+	FIREBASE_STORAGE_SETUP_MESSAGE
+} from '$lib/server/firebaseAdmin';
+import {
+	buildBlobPath,
+	isBlobStorageEnabled,
+	putFileBuffer
+} from '$lib/server/blobStorage';
 import { formatThaiDate, withSortOrder } from '$lib/server/dates';
 
 const DATA_DIR = path.join(process.cwd(), 'static', 'assets', 'data');
@@ -10,14 +21,23 @@ const IMAGE_DIRS = {
 	personnel: path.join(process.cwd(), 'static', 'assets', 'images', 'personnel')
 };
 
+const DOCUMENT_DIRS = {
+	news: path.join(process.cwd(), 'static', 'assets', 'documents', 'news')
+};
+
 const LOCAL_IMAGE_SUBDIRS = {
 	news: 'news',
 	activities: 'activity',
 	personnel: 'personnel'
 };
 
+const LOCAL_DOCUMENT_SUBDIRS = {
+	news: 'news'
+};
+
+/** @typedef {'news'} PdfCollectionName */
 /** @typedef {'news' | 'activities' | 'personnel'} ImageCollectionName */
-/** @typedef {'news' | 'activities'} CollectionName */
+/** @typedef {'news' | 'activities' | 'manuals' | 'knowledge' | 'plans' | 'forms' | 'personnel'} CollectionName */
 
 /** @param {CollectionName} name */
 function jsonPath(name) {
@@ -153,6 +173,27 @@ export async function saveSiteList(listKey, items) {
 	}
 }
 
+/** @param {Buffer} buffer @param {string} dir @param {string} filename @param {string} returnPath */
+async function writeLocalFileOrStorageError(buffer, dir, filename, returnPath) {
+	try {
+		await fs.mkdir(dir, { recursive: true });
+		await fs.writeFile(path.join(dir, filename), buffer);
+		return returnPath;
+	} catch (e) {
+		const err = /** @type {NodeJS.ErrnoException} */ (e);
+		if (err.code === 'EROFS' || err.code === 'EPERM' || err.code === 'ENOENT') {
+			throw new Error(FIREBASE_STORAGE_SETUP_MESSAGE);
+		}
+		throw e;
+	}
+}
+
+function requireStorageOrLocalDisk() {
+	if (!canWriteLocalStaticFiles()) {
+		throw new Error(FIREBASE_STORAGE_SETUP_MESSAGE);
+	}
+}
+
 /** @param {ImageCollectionName} collection @param {File | null} file */
 export async function saveImageFile(collection, file) {
 	if (!file || !file.size) {
@@ -163,23 +204,67 @@ export async function saveImageFile(collection, file) {
 	const ext = path.extname(file.name || '') || '.jpg';
 	const filename = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}${ext}`;
 
-	const bucket = getStorageBucket();
+	if (isBlobStorageEnabled()) {
+		const pathname = buildBlobPath(collection, ext);
+		return putFileBuffer(pathname, buffer, file.type || 'image/jpeg');
+	}
+
+	const bucket = await resolveStorageBucket();
 	if (bucket) {
 		const storagePath = `${collection}/${filename}`;
 		const ref = bucket.file(storagePath);
-		await ref.save(buffer, {
-			metadata: { contentType: file.type || 'image/jpeg' }
-		});
-		await ref.makePublic().catch(() => {});
-		return `https://storage.googleapis.com/${bucket.name}/${storagePath}`;
+		try {
+			await ref.save(buffer, {
+				metadata: { contentType: file.type || 'image/jpeg' }
+			});
+			await ref.makePublic().catch(() => {});
+			return `https://storage.googleapis.com/${bucket.name}/${storagePath}`;
+		} catch (e) {
+			const msg = e instanceof Error ? e.message : String(e);
+			if (msg.includes('bucket does not exist') || msg.includes('notFound')) {
+				throw new Error(FIREBASE_STORAGE_SETUP_MESSAGE);
+			}
+			throw e;
+		}
 	}
 
+	requireStorageOrLocalDisk();
+
 	const dir = IMAGE_DIRS[collection];
-	await fs.mkdir(dir, { recursive: true });
-	const savePath = path.join(dir, filename);
-	await fs.writeFile(savePath, buffer);
 	const subdir = LOCAL_IMAGE_SUBDIRS[collection] || collection;
-	return `assets/images/${subdir}/${filename}`;
+	return writeLocalFileOrStorageError(
+		buffer,
+		dir,
+		filename,
+		`assets/images/${subdir}/${filename}`
+	);
+}
+
+/** @param {PdfCollectionName} collection @param {File | null} file */
+export async function savePdfFile(collection, file) {
+	if (!file || !file.size) {
+		throw new Error('กรุณาเลือกไฟล์ PDF');
+	}
+
+	const buffer = Buffer.from(await file.arrayBuffer());
+	const ext = path.extname(file.name || '') || '.pdf';
+	const filename = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}${ext}`;
+
+	if (isBlobStorageEnabled()) {
+		const pathname = buildBlobPath(collection, ext);
+		return putFileBuffer(pathname, buffer, file.type || 'application/pdf');
+	}
+
+	requireStorageOrLocalDisk();
+
+	const dir = DOCUMENT_DIRS[collection];
+	const subdir = LOCAL_DOCUMENT_SUBDIRS[collection] || collection;
+	return writeLocalFileOrStorageError(
+		buffer,
+		dir,
+		filename,
+		`/assets/documents/${subdir}/${filename}`
+	);
 }
 
 export { isFirestoreEnabled, formatThaiDate };

@@ -1,15 +1,70 @@
 import { json, error } from '@sveltejs/kit';
 import { requireEditor } from '$lib/server/authGuard';
+import { validateDocumentLink } from '$lib/documentLink';
 import {
 	createItem,
 	deleteItem,
 	formatThaiDate,
 	isFirestoreEnabled,
 	listItems,
-	saveImageFile,
+	savePdfFile,
 	updateItem
 } from '$lib/server/contentStore';
 import { sortByDate } from '$lib/utils';
+
+const DEFAULT_IMAGE = 'assets/images/logos/moe.png';
+const NEWS_CATEGORY = 'ข่าวประชาสัมพันธ์';
+
+/** @param {FormData} form @param {Record<string, unknown> | undefined} existing */
+async function resolveNewsFields(form, existing) {
+	const title = String(form.get('title') || '').trim();
+	if (!title) throw error(400, 'กรุณาระบุหัวข้อ');
+
+	const summary = String(form.get('summary') || title);
+	const dateInput = String(form.get('date') || '');
+	const linkInput = String(form.get('link') || '').trim();
+	const linkUrl = String(form.get('linkUrl') || '').trim();
+	const pdfFile = form.get('pdfFile');
+
+	const hasExistingLink =
+		existing?.link && String(existing.link).trim() && String(existing.link).trim() !== '#';
+	const isNew = !existing;
+
+	let link = '';
+
+	if (linkUrl && linkUrl.startsWith('http')) {
+		link = linkUrl;
+	} else if (pdfFile instanceof File && pdfFile.size > 0) {
+		link = await savePdfFile('news', pdfFile);
+	} else if (linkInput) {
+		const linkCheck = validateDocumentLink(linkInput, {
+			allowEmpty: !isNew && Boolean(hasExistingLink)
+		});
+		if (!linkCheck.ok) {
+			throw error(400, linkCheck.message);
+		}
+		link = linkCheck.value;
+	} else if (hasExistingLink) {
+		link = String(existing.link).trim();
+	} else if (isNew) {
+		throw error(400, 'กรุณาอัปโหลด PDF หรือวางลิงก์เอกสาร');
+	}
+
+	if (isNew && (!link || link === '#')) {
+		throw error(400, 'กรุณาอัปโหลด PDF หรือวางลิงก์เอกสาร');
+	}
+
+	const image = String(existing?.image || DEFAULT_IMAGE) || DEFAULT_IMAGE;
+
+	return {
+		title,
+		category: NEWS_CATEGORY,
+		summary,
+		date: dateInput ? formatThaiDate(dateInput) : String(existing?.date || ''),
+		link: link || '#',
+		image
+	};
+}
 
 /** @type {import('./$types').RequestHandler} */
 export async function GET() {
@@ -22,30 +77,17 @@ export async function POST({ request, locals }) {
 	requireEditor(locals);
 
 	const form = await request.formData();
-	const title = String(form.get('title') || '').trim();
-	if (!title) throw error(400, 'กรุณาระบุหัวข้อ');
-
-	const category = String(form.get('category') || 'ข่าวประชาสัมพันธ์');
-	const summary = String(form.get('summary') || title);
-	const dateInput = String(form.get('date') || '');
-	const link = String(form.get('link') || '#');
-	const imageUrl = String(form.get('imageUrl') || '');
-	const imageFile = form.get('image');
-
-	let image = imageUrl || 'assets/images/logos/moe.png';
-	if (imageFile instanceof File && imageFile.size > 0) {
-		image = await saveImageFile('news', imageFile);
-	}
+	const fields = await resolveNewsFields(form);
 
 	const id = String(Date.now());
 	const item = {
 		id,
-		date: formatThaiDate(dateInput),
-		title,
-		category,
-		summary,
-		image,
-		link,
+		date: fields.date,
+		title: fields.title,
+		category: fields.category,
+		summary: fields.summary,
+		image: fields.image,
+		link: fields.link,
 		facebookLink: '',
 		content: '',
 		gallery: []
@@ -67,32 +109,17 @@ export async function PUT({ request, locals }) {
 	const existing = all.find((i) => String(i.id) === id);
 	if (!existing) throw error(404, `ไม่พบรายการ id ${id}`);
 
-	const title = String(form.get('title') || '').trim();
-	if (!title) throw error(400, 'กรุณาระบุหัวข้อ');
-
-	const category = String(form.get('category') || existing.category || 'ข่าวประชาสัมพันธ์');
-	const summary = String(form.get('summary') || title);
-	const dateInput = String(form.get('date') || '');
-	const link = String(form.get('link') || existing.link || '#');
-	const imageUrl = String(form.get('imageUrl') || '');
-	const imageFile = form.get('image');
-
-	let image = existing.image || 'assets/images/logos/moe.png';
-	if (imageFile instanceof File && imageFile.size > 0) {
-		image = await saveImageFile('news', imageFile);
-	} else if (imageUrl) {
-		image = imageUrl;
-	}
+	const fields = await resolveNewsFields(form, existing);
 
 	const item = {
 		...existing,
 		id,
-		date: dateInput ? formatThaiDate(dateInput) : existing.date,
-		title,
-		category,
-		summary,
-		image,
-		link
+		date: fields.date || existing.date,
+		title: fields.title,
+		category: fields.category,
+		summary: fields.summary,
+		image: fields.image,
+		link: fields.link
 	};
 
 	await updateItem('news', id, item);

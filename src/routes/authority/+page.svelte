@@ -1,25 +1,22 @@
 <script>
-	import { onMount } from 'svelte';
-	import { fetchSiteList } from '$lib/fetchNews';
-	
-	let authority = [];
-	let loading = true;
-	
-	onMount(async () => {
-		authority = await fetchSiteList('authority');
-		loading = false;
-	});
+	import { navigating } from '$app/stores';
+
+	/** @type {import('./$types').PageData} */
+	export let data;
+
+	$: authority = data.authority;
+	$: busy = !!$navigating;
 </script>
 
 <svelte:head>
 	<title>อำนาจหน้าที่ - กลุ่มพัฒนาครูฯ</title>
 </svelte:head>
 
-<div class="container">
-	<h2 class="section-title">⚖️ อำนาจหน้าที่</h2>
+<div class="container" aria-busy={busy ? 'true' : undefined}>
+	<h1 class="page-title page-title--with-icon">⚖️ อำนาจหน้าที่</h1>
 	
-	{#if loading}
-		<p>กำลังโหลด...</p>
+	{#if busy}
+		<p aria-live="polite">กำลังโหลด...</p>
 	{:else if authority.length > 0}
 		<ul class="auth-list">
 			{#each authority as item}
@@ -30,36 +27,6 @@
 			{/each}
 		</ul>
 	{:else}
-		<p>ไม่มีข้อมูลอำนาจหน้าที่</p>
+		<p aria-live="polite">ไม่มีข้อมูลอำนาจหน้าที่</p>
 	{/if}
 </div>
-
-<style>
-	.auth-list {
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
-		margin-top: 1rem;
-	}
-	
-	.auth-item {
-		background: var(--white);
-		padding: 1.5rem;
-		border-radius: 8px;
-		display: flex;
-		align-items: flex-start;
-		gap: 1rem;
-		box-shadow: 0 2px 4px var(--shadow);
-		transition: transform 0.2s;
-	}
-	
-	.auth-item:hover {
-		transform: translateX(5px);
-	}
-	
-	.auth-icon {
-		font-size: 1.2rem;
-		color: var(--primary-purple);
-		flex-shrink: 0;
-	}
-</style>

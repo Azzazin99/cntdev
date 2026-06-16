@@ -1,31 +1,28 @@
 <script>
-	import { onMount } from 'svelte';
+	import { navigating } from '$app/stores';
 	import { openPopup } from '$lib/utils';
-	import { fetchActivities } from '$lib/fetchNews';
-	
-	let activities = [];
-	let loading = true;
-	
-	onMount(async () => {
-		activities = await fetchActivities();
-		loading = false;
-	});
+
+	/** @type {import('./$types').PageData} */
+	export let data;
+
+	$: activities = data.activities;
+	$: busy = !!$navigating;
 </script>
 
 <svelte:head>
 	<title>ภาพกิจกรรม - กลุ่มพัฒนาครูฯ</title>
 </svelte:head>
 
-<div class="container">
-	<h2 class="section-title">📸 ภาพกิจกรรม</h2>
+<div class="container" aria-busy={busy ? 'true' : undefined}>
+	<h1 class="page-title page-title--with-icon">📸 ภาพกิจกรรม</h1>
 	
-	{#if loading}
-		<p>กำลังโหลด...</p>
+	{#if busy}
+		<p aria-live="polite">กำลังโหลด...</p>
 	{:else if activities.length > 0}
 		<div class="activities-grid">
 			{#each activities as item}
 				<button class="activity-card" on:click={() => openPopup(item.link)} aria-label="ดูรายละเอียด {item.title}">
-					<img src={item.image} alt={item.title} class="activity-img">
+					<img src={item.image} alt={item.title} class="activity-img" loading="lazy" decoding="async">
 					<div class="activity-content">
 						<div class="activity-date">📅 {item.date}</div>
 						<h3>{item.title}</h3>
@@ -34,6 +31,6 @@
 			{/each}
 		</div>
 	{:else}
-		<p>ไม่มีภาพกิจกรรม</p>
+		<p aria-live="polite">ไม่มีภาพกิจกรรม</p>
 	{/if}
 </div>

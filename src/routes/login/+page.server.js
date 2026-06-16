@@ -17,10 +17,14 @@ export function load({ locals, url }) {
 		throw redirect(302, redirectTo);
 	}
 
+	const turnstileSiteKey = getTurnstileSiteKey();
+	const turnstileEnabled = isTurnstileEnabled();
+
 	return {
 		redirectTo,
-		turnstileSiteKey: getTurnstileSiteKey(),
-		turnstileEnabled: isTurnstileEnabled()
+		turnstileSiteKey,
+		turnstileEnabled,
+		turnstileMisconfigured: Boolean(turnstileSiteKey && !turnstileEnabled)
 	};
 }
 

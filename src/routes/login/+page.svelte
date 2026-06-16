@@ -1,25 +1,81 @@
 <script>
+	import { onMount } from 'svelte';
+
 	export let data;
 	export let form;
 
 	let username = 'admin';
 	let password = '';
+	let turnstileLoadError = false;
+
+	onMount(() => {
+		if (!data.turnstileEnabled || !data.turnstileSiteKey) return;
+
+		const sitekey = data.turnstileSiteKey;
+		const container = document.querySelector('.cf-turnstile');
+		if (!container) return;
+
+		const render = () => {
+			// @ts-ignore — loaded from Cloudflare script
+			if (!window.turnstile) {
+				turnstileLoadError = true;
+				return;
+			}
+			container.innerHTML = '';
+			// @ts-ignore
+			window.turnstile.render(container, { sitekey });
+		};
+
+		// @ts-ignore
+		if (window.turnstile) {
+			render();
+			return;
+		}
+
+		const existing = document.querySelector('script[data-turnstile]');
+		if (existing) {
+			existing.addEventListener('load', render, { once: true });
+			return;
+		}
+
+		const script = document.createElement('script');
+		script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+		script.async = true;
+		script.defer = true;
+		script.dataset.turnstile = '1';
+		script.onload = render;
+		script.onerror = () => {
+			turnstileLoadError = true;
+		};
+		document.head.appendChild(script);
+	});
 </script>
 
 <svelte:head>
 	<title>เข้าสู่ระบบ - กลุ่มพัฒนาครูฯ</title>
-	{#if data.turnstileSiteKey}
-		<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-	{/if}
 </svelte:head>
 
 <div class="container">
 	<div class="login-card">
-		<h2 class="title">🔐 เข้าสู่ระบบแอดมิน</h2>
+		<h1 class="title">🔐 เข้าสู่ระบบแอดมิน</h1>
 		<p class="subtitle">กรอกชื่อผู้ใช้และรหัสผ่านเพื่อเข้าหน้าจัดการข่าวและเนื้อหาเว็บ</p>
 
 		{#if form?.error}
 			<div class="alert error">❌ {form.error}</div>
+		{/if}
+
+		{#if data.turnstileMisconfigured}
+			<div class="alert warn">
+				ตั้งค่า Turnstile ไม่ครบ: มี Site Key แต่ไม่มี Secret — ลบ `PUBLIC_TURNSTILE_SITE_KEY` ออกจาก `.env.local`
+				หรือใส่ `TURNSTILE_SECRET_KEY` คู่กัน แล้วรีสตาร์ท `npm run dev`
+			</div>
+		{/if}
+
+		{#if turnstileLoadError}
+			<div class="alert warn">
+				โหลด Cloudflare Turnstile ไม่ได้ — ตรวจสอบ hostname ใน Dashboard (ต้องมี `localhost` และ `127.0.0.1`)
+				หรือปิด Turnstile ชั่วคราวโดยลบ env ทั้งสองตัวแล้วรีสตาร์ท dev server
+			</div>
 		{/if}
 
 		<form method="POST" action={`?redirect=${encodeURIComponent(data.redirectTo)}`}>
@@ -47,9 +103,9 @@
 				required
 			>
 
-			{#if data.turnstileSiteKey}
+			{#if data.turnstileEnabled}
 				<div class="turnstile-wrap">
-					<div class="cf-turnstile" data-sitekey={data.turnstileSiteKey}></div>
+					<div class="cf-turnstile"></div>
 				</div>
 			{/if}
 
@@ -66,17 +122,24 @@
 		margin: 2rem auto;
 		background: var(--white);
 		border-radius: 14px;
-		box-shadow: 0 6px 18px var(--shadow);
+		box-shadow: 0 1px 3px var(--shadow);
+		border: 1px solid var(--border-subtle);
 		padding: 2rem;
 	}
 
 	.title {
 		margin: 0 0 0.25rem 0;
+		font-size: var(--text-2xl);
+		font-weight: 700;
+		line-height: var(--leading-tight);
+		text-wrap: balance;
 		color: var(--text-dark);
 	}
 
 	.subtitle {
 		margin: 0 0 1.5rem 0;
+		font-size: var(--text-sm);
+		line-height: var(--leading-normal);
 		color: var(--text-gray);
 	}
 
@@ -91,17 +154,16 @@
 		width: 100%;
 		padding: 0.85rem 1rem;
 		border-radius: 10px;
-		border: 1px solid #ddd;
+		border: 1px solid var(--border-subtle);
 		background: var(--white);
 		color: var(--text-dark);
 		min-height: 44px;
 		font-family: inherit;
 	}
 
-	.input:focus {
-		outline: none;
+	.input:focus-visible {
 		border-color: var(--primary-purple);
-		box-shadow: 0 4px 12px rgba(123, 31, 162, 0.2);
+		box-shadow: 0 0 0 3px var(--color-info-bg);
 	}
 
 	.turnstile-wrap {
@@ -127,8 +189,12 @@
 	}
 
 	.btn.primary {
-		background: var(--primary-purple);
-		color: white;
+		background: var(--btn-primary-bg);
+		color: var(--btn-primary-text);
+	}
+
+	.btn.primary:hover:not(:disabled) {
+		background: var(--btn-primary-hover);
 	}
 
 	.btn:disabled {
@@ -144,29 +210,34 @@
 	}
 
 	.alert.error {
-		background: rgba(198, 40, 40, 0.12);
-		color: #c62828;
+		background: var(--color-error-bg);
+		color: var(--color-error);
+	}
+
+	.alert.warn {
+		background: var(--color-warning-bg);
+		color: var(--color-warning);
+		font-weight: 600;
+		font-size: 0.9rem;
+		line-height: 1.45;
 	}
 
 	:global(body.dark-mode) .login-card {
-		background: #2d2d2d;
+		background: var(--white);
 	}
 
-	:global(body.dark-mode) .title {
-		color: #f1f1f1;
-	}
-
+	:global(body.dark-mode) .title,
 	:global(body.dark-mode) .label {
-		color: #f1f1f1;
+		color: var(--text-dark);
 	}
 
 	:global(body.dark-mode) .subtitle {
-		color: #cfcfcf;
+		color: var(--text-gray);
 	}
 
 	:global(body.dark-mode) .input {
-		background: #1f1f1f;
-		border-color: #444;
-		color: #f1f1f1;
+		background: var(--white);
+		border-color: var(--border-subtle);
+		color: var(--text-dark);
 	}
 </style>

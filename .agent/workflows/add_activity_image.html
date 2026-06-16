@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>วิธีเพิ่มรูปภาพกิจกรรม (ให้ไม่หมดอายุ)</title>
+  <meta name="description" content="How to add images for Activities correctly to prevent broken links">
+  <link rel="stylesheet" href="../../docs/doc.css">
+</head>
+<body>
+  <main class="doc">
+    <h1>วิธีเพิ่มรูปภาพกิจกรรม (ให้ไม่หมดอายุ)</h1>
+    <p>การใช้ลิงก์จาก Facebook โดยตรง (คลิกขวา Copy Image Link) มักจะมีปัญหาลิงก์หมดอายุ (Expired) ทำให้รูปกลายเป็นกากบาท
+    วิธีที่ดีที่สุดคือการ <strong>เซฟรูปลงเครื่อง</strong> ครับ</p>
+    <h2>ขั้นตอนที่ 1: เซฟรูป</h2>
+    <ol>
+    <li>ไปที่โพสต์ Facebook ที่ต้องการ</li>
+    <li>คลิกขวาที่รูป -&gt; <strong>Save Image As... (บันทึกรูปภาพเป็น...)</strong></li>
+    <li>ตั้งชื่อไฟล์เป็นภาษาอังกฤษง่ายๆ เช่น <code>act-01.jpg</code>, <code>news-2024.jpg</code><ul>
+    <li>❌ ห้ามใช้ชื่อภาษาไทยยาวๆ หรือเว้นวรรคเยอะๆ</li>
+    </ul>
+    </li>
+    </ol>
+    <h2>ขั้นตอนที่ 2: เอาไฟล์เข้าโปรเจกต์</h2>
+    <ol>
+    <li>นำไฟล์รูปที่ได้ ไปใส่ในโฟลเดอร์นี้ของโปรเจกต์:
+    <code>cnt_clone/assets/images/news/</code></li>
+    </ol>
+    <h2>ขั้นตอนที่ 3: แก้ไขข้อมูล (Excel / JSON)</h2>
+    <ol>
+    <li><p>เปิดไฟล์ข้อมูล (เช่น Google Sheet หรือไฟล์ <code>news.json</code>)</p>
+    </li>
+    <li><p>ในช่อง <code>image</code> ให้ใส่ที่อยู่ไฟล์แบบนี้:
+    <code>assets/images/news/ชื่อไฟล์.jpg</code></p>
+    <p>ตัวอย่าง:
+    <code>assets/images/news/act-01.jpg</code></p>
+    </li>
+    </ol>
+    <h2>ขั้นตอนที่ 4: ตรวจสอบ</h2>
+    <ol>
+    <li>Refresh หน้าเว็บ</li>
+    <li>รูปจะขึ้นถาวร ไม่มีวันหมดอายุแน่นอน!</li>
+    </ol>
+
+  </main>
+</body>
+</html>

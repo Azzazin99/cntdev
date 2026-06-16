@@ -1,30 +1,27 @@
 <script>
-	import { onMount } from 'svelte';
-	import { fetchSiteList } from '$lib/fetchNews';
+	import { navigating } from '$app/stores';
 	import { convertDriveLink, openPopup } from '$lib/utils';
-	
-	let forms = [];
-	let loading = true;
-	
-	onMount(async () => {
-		forms = await fetchSiteList('forms');
-		loading = false;
-	});
+
+	/** @type {import('./$types').PageData} */
+	export let data;
+
+	$: forms = data.forms;
+	$: busy = !!$navigating;
 </script>
 
 <svelte:head>
 	<title>แบบฟอร์ม - กลุ่มพัฒนาครูฯ</title>
 </svelte:head>
 
-<div class="container">
-	<h2 class="section-title">📝 แบบฟอร์ม</h2>
+<div class="container" aria-busy={busy ? 'true' : undefined}>
+	<h1 class="page-title page-title--with-icon">📝 แบบฟอร์ม</h1>
 	
-	{#if loading}
-		<p>กำลังโหลด...</p>
+	{#if busy}
+		<p aria-live="polite">กำลังโหลด...</p>
 	{:else if forms.length > 0}
 		<div class="doc-list">
 			{#each forms as form, index}
-				<div class="doc-item" style="border-left-color: #ff9800;">
+				<div class="doc-item">
 					<div class="doc-icon">📝</div>
 					<div class="doc-info">
 						<div class="doc-title">{index + 1}. {form.title || form.name}</div>
@@ -37,6 +34,6 @@
 			{/each}
 		</div>
 	{:else}
-		<p>ไม่มีแบบฟอร์ม</p>
+		<p aria-live="polite">ไม่มีแบบฟอร์ม</p>
 	{/if}
 </div>

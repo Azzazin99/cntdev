@@ -1,30 +1,27 @@
 <script>
-	import { onMount } from 'svelte';
-	import { fetchSiteList } from '$lib/fetchNews';
+	import { navigating } from '$app/stores';
 	import { convertDriveLink, openPopup } from '$lib/utils';
-	
-	let plans = [];
-	let loading = true;
-	
-	onMount(async () => {
-		plans = await fetchSiteList('plans');
-		loading = false;
-	});
+
+	/** @type {import('./$types').PageData} */
+	export let data;
+
+	$: plans = data.plans;
+	$: busy = !!$navigating;
 </script>
 
 <svelte:head>
 	<title>แผนพัฒนาครู - กลุ่มพัฒนาครูฯ</title>
 </svelte:head>
 
-<div class="container">
-	<h2 class="section-title">📈 แผนพัฒนาครู</h2>
+<div class="container" aria-busy={busy ? 'true' : undefined}>
+	<h1 class="page-title page-title--with-icon">📈 แผนพัฒนาครู</h1>
 	
-	{#if loading}
-		<p>กำลังโหลด...</p>
+	{#if busy}
+		<p aria-live="polite">กำลังโหลด...</p>
 	{:else if plans.length > 0}
 		<div class="doc-list">
 			{#each plans as item}
-				<div class="doc-item" style="border-left-color: #e91e63;">
+				<div class="doc-item">
 					<div class="doc-icon">📈</div>
 					<div class="doc-info">
 						<div class="doc-title">{item.title}</div>
@@ -37,6 +34,6 @@
 			{/each}
 		</div>
 	{:else}
-		<p>ไม่มีแผนพัฒนาครู</p>
+		<p aria-live="polite">ไม่มีแผนพัฒนาครู</p>
 	{/if}
 </div>

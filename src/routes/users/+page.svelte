@@ -1,15 +1,12 @@
 <script>
-	import { onMount } from 'svelte';
-	import { fetchSiteList } from '$lib/fetchNews';
-	
-	let personnel = [];
-	let loading = true;
-	
-	onMount(async () => {
-		personnel = await fetchSiteList('personnel');
-		loading = false;
-	});
-	
+	import { navigating } from '$app/stores';
+
+	/** @type {import('./$types').PageData} */
+	export let data;
+
+	$: personnel = data.personnel;
+	$: busy = !!$navigating;
+
 	function convertDriveLink(url) {
 		if (!url) return '#';
 		const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
@@ -24,18 +21,18 @@
 	<title>บุคลากร - กลุ่มพัฒนาครูฯ</title>
 </svelte:head>
 
-<div class="container">
-	<h2 class="section-title">👥 บุคลากร</h2>
+<div class="container" aria-busy={busy ? 'true' : undefined}>
+	<h1 class="page-title page-title--with-icon">👥 บุคลากร</h1>
 	
-	{#if loading}
-		<p>กำลังโหลด...</p>
+	{#if busy}
+		<p aria-live="polite">กำลังโหลด...</p>
 	{:else if personnel.length > 0}
 		<div class="org-chart-container">
 			{#each personnel as person}
 				<div class="org-connector">
 					<div class="org-card">
 						<div class="org-img-wrapper">
-							<img src={convertDriveLink(person.image)} alt={person.name} class="org-img">
+							<img src={convertDriveLink(person.image)} alt={person.name || 'รูปบุคลากร'} class="org-img" loading="lazy" decoding="async">
 						</div>
 						<div class="org-info">
 							<h3 class="org-name">{person.name}</h3>
@@ -47,7 +44,7 @@
 			{/each}
 		</div>
 	{:else}
-		<p>ไม่มีข้อมูลบุคลากร</p>
+		<p aria-live="polite">ไม่มีข้อมูลบุคลากร</p>
 	{/if}
 </div>
 
@@ -66,19 +63,9 @@
 	}
 	
 	.org-card {
-		background: var(--white);
-		border-radius: 12px;
-		overflow: hidden;
-		box-shadow: 0 4px 12px var(--shadow);
-		text-align: center;
-		transition: transform 0.3s;
 		width: 100%;
 		max-width: 320px;
 		border-top: none !important;
-	}
-	
-	.org-card:hover {
-		transform: translateY(-5px);
 	}
 	
 	.org-img-wrapper {

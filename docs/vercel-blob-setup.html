@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ตั้งค่า Vercel Blob สำหรับอัปโหลดไฟล์</title>
+  <link rel="stylesheet" href="./doc.css">
+</head>
+<body>
+  <main class="doc">
+    <h1>ตั้งค่า Vercel Blob สำหรับอัปโหลดไฟล์</h1>
+    <p>โปรเจกต์: <strong>cntdev</strong> · Production: <a href="https://cntdev.vercel.app">https://cntdev.vercel.app</a></p>
+    <blockquote>
+    <p><strong>PDF ข่าว:</strong> อัปโหลดผ่าน <strong>Vercel Blob</strong> จากแท็บข่าวใน admin (สูงสุด 20 MB) — หรือวางลิงก์ Google Drive แทนได้</p>
+    <p><strong>PDF อื่นๆ</strong> (คู่มือ, ความรู้, แผน, แบบฟอร์ม): ใช้ <strong>Google Drive</strong> — ดู <a href="./google-drive-workflow.html">google-drive-workflow.html</a></p>
+    <p><strong>รูปภาพ:</strong> กิจกรรมและบุคลากรอัปโหลดผ่าน <strong>Vercel Blob</strong> (สูงสุด 5 MB ต่อรูป)</p>
+    </blockquote>
+    <h2>ทำไมใช้ Vercel Blob</h2>
+    <ul>
+    <li><strong>Firestore</strong> เก็บข้อความและลิงก์เอกสาร</li>
+    <li><strong>Vercel Blob</strong> เก็บ PDF ข่าว รูปกิจกรรม และรูปบุคลากรจาก admin</li>
+    <li>ไม่ต้องตั้ง CORS แบบ Firebase Storage</li>
+    </ul>
+    <hr>
+    <h2>ขั้นตอนใน Vercel Dashboard</h2>
+    <ol>
+    <li>เปิด <a href="https://vercel.com">Vercel Dashboard</a> → เลือกโปรเจกต์ <strong>cntdev</strong></li>
+    <li>แถบซ้าย → <strong>Storage</strong> → <strong>Create Database</strong> → เลือก <strong>Blob</strong></li>
+    <li>ตั้งชื่อ store (เช่น <code>cntdev-files</code>)</li>
+    <li>เลือก <strong>Public</strong> (รูปต้องแสดงบนหน้าสาธารณะได้)</li>
+    <li>ติ๊ก <strong>Production</strong> และ <strong>Preview</strong> เพื่อ inject env</li>
+    <li>กด <strong>Create</strong> — Vercel จะเชื่อม env ให้โปรเจกต์ (เช่น <code>BLOB_STORE_ID</code> และ OIDC)</li>
+    <li><strong>สร้าง Read-Write Token</strong> (จำเป็นสำหรับอัปโหลด PDF ข่าวจาก admin ในเบราว์เซอร์): ใน Blob store → แท็บ <strong>Projects</strong> → เลือก <strong>cntdev</strong> → สร้าง / เพิ่ม <code>BLOB_READ_WRITE_TOKEN</code> ให้ <strong>Production</strong> + <strong>Preview</strong> (OIDC อย่างเดียวใช้กับ <code>handleUpload</code> ไม่ได้)</li>
+    <li><strong>Redeploy</strong> production หลังเชื่อม store และ token</li>
+    </ol>
+    <hr>
+    <h2>Local dev</h2>
+    <p><strong>สำคัญ:</strong> <code>vercel env pull</code> ธรรมดาดึงแค่ Development (มีแค่ OIDC) — login admin จะล้มเพราะไม่มี <code>ADMIN_PASSWORD</code></p>
+    <ol>
+    <li><code>vercel link</code></li>
+    <li><code>vercel env pull .env.local --environment=production</code></li>
+    <li>restart <code>npm run dev</code></li>
+    <li>เปิด <code>http://localhost:6395/admin</code> — login ด้วย username <code>admin</code> + รหัสที่ตั้งบน Vercel</li>
+    <li>ลองอัปโหลด PDF ข่าวหรือรูป</li>
+    </ol>
+    <p>อัปโหลดจาก admin ส่งไฟล์ผ่าน API แล้วใช้ <code>put()</code> ฝั่ง server (OIDC บน production) — ไม่ใช้ client token อีกแล้ว</p>
+    <p>บนเครื่อง dev ไฟล์จะเขียนลง <code>static/</code> (ยกเว้นมี <code>BLOB_READ_WRITE_TOKEN</code> ใน <code>.env.local</code>)</p>
+    <hr>
+    <h2>แก้ปัญหาอัปโหลด</h2>
+    <table>
+    <thead>
+    <tr><th>ข้อความ error</th><th>แก้</th></tr>
+    </thead>
+    <tbody>
+    <tr>
+    <td><code>Failed to retrieve the client token</code></td>
+    <td>ยังไม่มี <code>BLOB_READ_WRITE_TOKEN</code> — สร้าง Read-Write Token ใน Blob store แล้ว redeploy (ดูขั้นตอนด้านบน)</td>
+    </tr>
+    <tr>
+    <td>ไฟล์ใหญ่เกิน 4.5 MB สำหรับอัปโหลดแบบ server</td>
+    <td>PDF ข่าวสูงสุด 20 MB ต้องมี <code>BLOB_READ_WRITE_TOKEN</code> เพื่ออัปโหลดตรงจากเบราว์เซอร์</td>
+    </tr>
+    </tbody>
+    </table>
+    <hr>
+    <h2>แก้ปัญหา 404 ตอนเปิดอ่าน</h2>
+    <table>
+    <thead>
+    <tr><th>อาการ</th><th>สาเหตุ / แก้</th></tr>
+    </thead>
+    <tbody>
+    <tr>
+    <td>เปิดอ่านแล้ว 404 บน <code>cntdev.vercel.app</code></td>
+    <td>อัปบนเครื่อง dev แล้วไฟล์อยู่แค่ใน <code>static/</code> — ต้องอัปใหม่บน <strong>production</strong> เมื่อ Blob ตั้งแล้ว (ลิงก์จะเป็น <code>*.public.blob.vercel-storage.com</code>) หรือใช้ลิงก์ Google Drive</td>
+    </tr>
+    <tr>
+    <td>ลิงก์เป็น <code>assets/documents/...</code> แล้ว 404</td>
+    <td>path ต้องขึ้นต้นด้วย <code>/</code> — โค้ดแก้แล้วใน <code>resolveDocumentOpenUrl</code>; ข่าวที่อัปก่อนหน้านี้อาจต้องแก้ไขรายการแล้วอัป PDF ใหม่</td>
+    </tr>
+    <tr>
+    <td>ลิงก์ Blob แต่ 404</td>
+    <td>ตรวจว่า store เป็น <strong>Public</strong> และ redeploy หลังสร้าง Blob; ลองเปิด URL ในแท็บใหม่ตรงๆ</td>
+    </tr>
+    </tbody>
+    </table>
+    <hr>
+    <h2>เอกสาร PDF อื่นๆ (คู่มือ ความรู้ แผน แบบฟอร์ม)</h2>
+    <p>ดู <a href="./google-drive-workflow.html">google-drive-workflow.html</a></p>
+  </main>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Product</title>
+  <link rel="stylesheet" href="docs/doc.css">
+</head>
+<body>
+  <main class="doc">
+    <h1>Product</h1>
+    <h2>Register</h2>
+    <p>brand</p>
+    <blockquote>
+    <p><strong>Per-task override:</strong> Public pages (<code>/</code>, <code>/news</code>, <code>/activities</code>, document libraries, certificates) use <strong>brand</strong> register. <code>/admin</code>, <code>/login</code>, and CRUD workflows use <strong>product</strong> register — design serves the task, not the impression.</p>
+    </blockquote>
+    <h2>Users</h2>
+    <ul>
+    <li><strong>Primary:</strong> ครูและบุคลากรทางการศึกษาในเขตพื้นที่การศึกษาประถมศึกษาชัยนาท (สพป.ชัยนาท) และผู้สนใจข่าว/เอกสารของกลุ่มพัฒนาครูและบุคลากรทางการศึกษา</li>
+    <li><strong>Context:</strong> เข้าเว็บจากโรงเรียน/สำนักงานเขต มักใช้มือถือหรือเดสก์ท็อประหว่างงาน ต้องการข่าว ภาพกิจกรรม คู่มือ แผน แบบฟอร์ม คลังความรู้ หรือค้นหาเกียรติบัตรอย่างรวดเร็ว</li>
+    <li><strong>Secondary:</strong> ผู้ดูแลระบบ (admin/editor) ที่อัปเดตเนื้อหาผ่าน <code>/admin</code> หลัง login + Turnstile</li>
+    </ul>
+    <h2>Product Purpose</h2>
+    <p>เว็บไซต์กลางของกลุ่มพัฒนาครูและบุคลากรทางการศึกษา สพป.ชัยนาท — รวมข่าวประชาสัมพันธ์ ภาพกิจกรรม เอกสาร PDF (คู่มือ แผน แบบฟอร์ม คลังความรู้) อำนาจหน้าที่ บุคลากร และคลังเกียรติบัตร (เชื่อม Google Sheets) ในที่เดียว</p>
+    <p><strong>ความสำเร็จ:</strong> ผู้ใช้พบข้อมูลล่าสุดได้ภายในไม่กี่คลิก เอกสารเปิดได้ชัดเจน ภาษาไทยอ่านง่าย ความน่าเชื่อถือระดับหน่วยงานราชการ และ admin อัปโหลด/แก้ไขได้โดยไม่พึ่ง developer</p>
+    <p><strong>สแต็ก:</strong> SvelteKit บน Vercel · ข้อมูล production ที่ Firebase Firestore + Storage · dev ที่ <code>http://localhost:6395</code> · fallback JSON ใน <code>static/assets/data/</code> เมื่อไม่มี Firebase</p>
+    <h2>Brand Personality</h2>
+    <ul>
+    <li><strong>สามคำ:</strong> เป็นทางการ · อบอุ่น · ชัดเจน</li>
+    <li><strong>โทน:</strong> ภาษาไทยตรงไปตรงมา ไม่โฆษณาเกินจริง ไม่ startup-casual — เหมาะกับหน่วยงานการศึกษาไทย</li>
+    <li><strong>อารมณ์ที่ต้องการ:</strong> ความไว้วางใจ ความเป็นระเบียบ การเข้าถึงข้อมูลราชการที่ไม่น่ากลัวหรือล้าสมัย</li>
+    <li><strong>อ้างอิงจิตใจ (ไม่ใช่คัดลอก UI):</strong> พอร์ทัลหน่วยงาน สพฐ./เขตพื้นที่ที่อ่านง่าย + สีม่วงองค์กรที่จำได้ ไม่ใช่ landing SaaS หรือ dashboard fintech</li>
+    </ul>
+    <h2>Anti-references</h2>
+    <ul>
+    <li>Landing page สไตล์ AI (gradient hero, Inter, glassmorphism, generic &quot;modern&quot; cards)</li>
+    <li>แอป admin แบบ enterprise เย็นชา (dense tables, gray-only chrome) บนหน้าสาธารณะ</li>
+    <li>ข้อความภาษาอังกฤษหรือ jargon โดยไม่จำเป็น</li>
+    <li>ทำลายอัตลักษณ์ม่วง <code>#7b1fa2</code> ที่ผู้ใช้คุ้นเคย — ไม่เปลี่ยนแบรนด์เพื่อ &quot;สดใหม่&quot; โดยไม่มีเหตุผล</li>
+    </ul>
+    <h2>Design Principles</h2>
+    <ol>
+    <li><strong>ข้อมูลก่อนตกแต่ง</strong> — ข่าว เอกสาร และลิงก์ภายนอกต้องเด่นกว่า motion หรือเอฟเฟกต์</li>
+    <li><strong>ความน่าเชื่อถือของหน่วยงาน</strong> — layout สะอาด อ่านได้บนมือถือ ไม่เล่น visual risk ที่ทำให้ดูไม่เป็นทางการ</li>
+    <li><strong>ภาษาไทยเป็นหลัก</strong> — <code>lang=&quot;th&quot;</code>, ฟอนต์ Sarabun, หัวข้อและปุ่มชัด ไม่ย่อหรือซ่อนข้อมูลสำคัญ</li>
+    <li><strong>รักษาอัตลักษณ์ม่วง</strong> — สีและโทนเดิมคือ anchor; ปรับปรุง hierarchy และ a11y ไม่ใช่ rebrand</li>
+    <li><strong>แยก register ตามพื้นที่</strong> — หน้าสาธารณะสื่อสารและชวนอ่าน; admin เน้น workflow CRUD ความชัดของสถานะและข้อผิดพลาด</li>
+    </ol>
+    <h2>Accessibility &amp; Inclusion</h2>
+    <ul>
+    <li>เป้าหมาย <strong>WCAG 2.1 Level AA</strong> สำหรับหน้าสาธารณะ (คอนทราสต์ข้อความ/ปุ่ม, focus ที่มองเห็น, ป้ายกำกับฟอร์ม admin/login)</li>
+    <li>รองรับ <strong>dark mode</strong> ที่มีอยู่ (<code>body.dark-mode</code>) — ทุก component ต้องใช้ CSS variables ไม่ hardcode <code>#ffffff</code> / <code>white</code></li>
+    <li><strong>Reduced motion:</strong> เคารพ <code>prefers-reduced-motion</code> เมื่อเพิ่ม animation ใหม่</li>
+    <li>เป้าหมายแตะ <strong>44px</strong> สำหรับ interactive targets (<code>--tap-size</code> ใน <code>src/app.css</code>)</li>
+    <li>เอกสาร PDF/รูป: มี alt text และ aria-label ที่มีความหมาย (โดยเฉพาะการ์ดกิจกรรมและปุ่มเปิดเอกสาร)</li>
+    </ul>
+
+  </main>
+</body>
+</html>

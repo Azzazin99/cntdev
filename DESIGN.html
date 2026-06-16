@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>cntdev — กลุ่มพัฒนาครู สพป.ชัยนาท</title>
+  <meta name="description" content="พอร์ทัลข่าวและเอกสารครูไทย — ม่วงองค์กร อ่านง่าย น่าเชื่อถือ">
+  <link rel="stylesheet" href="docs/doc.css">
+</head>
+<body>
+  <main class="doc">
+    <h2>Overview</h2>
+    <p><strong>Scene:</strong> <em>พอร์ทัลการศึกษาไทยที่อบอุ่นและเป็นทางการ — เส้นทางสีม่วงชี้ครูไปยังข่าว เอกสาร และเกียรติบัตร โดยไม่รู้สึกเหมือนเทมเพลต SaaS ทั่วไป</em></p>
+    <p>ระบบภาพรวมมาจาก <code>src/app.css</code> (หน้าสาธารณะ) และ scoped styles ใน <code>src/routes/admin/+page.svelte</code> (แผง admin). โทน: พื้นหลังเทาอ่อน, การ์ดขาว, accent ม่วง <code>#7b1fa2</code>, ฟอนต์ <strong>Sarabun</strong> จาก Google Fonts (<code>src/app.html</code>). Layout หลัก: sticky nav + <code>container</code> (max 1200px) + <code>grid-layout</code> (main + sidebar 320px) บนหน้าแรก; แตกคอลัมนเดียวที่ ≤768px.</p>
+    <p><strong>Color strategy (identity preservation):</strong> ใช้กลยุทธ์ <strong>Committed</strong> บม่วงองค์กรที่มีอยู่ — ไม่รัน <code>palette.mjs</code> เพื่อแทนที่แบรนด์. ขยายความ contrast และ dark-mode tokens รอบ <code>#7b1fa2</code> / <code>#6a1b9a</code> / <code>#f3e5f5</code> แทนการเปลี่ยน hue. Admin ใช้ชุดเดียวกัน (<code>--primary: #7b1fa2</code>) บนพื้น <code>#f4f7f6</code>.</p>
+    <p><strong>Dev:</strong> <code>npm run dev</code> → <code>http://localhost:6395</code> (see <code>vite.config.js</code>).</p>
+    <h3>Known audit backlog (from codebase scan)</h3>
+    <table>
+    <thead>
+    <tr>
+    <th>Issue</th>
+    <th>Where</th>
+    <th>Notes</th>
+    </tr>
+    </thead>
+    <tbody><tr>
+    <td><strong>Side-tab borders</strong></td>
+    <td><del><code>.news-link-item</code>, <code>.doc-item</code>, timeline</del></td>
+    <td><strong>Resolved (quieter pass):</strong> 1px <code>--border-subtle</code> แทน <code>border-left: 4px</code></td>
+    </tr>
+    <tr>
+    <td><strong>Missing public <code>&lt;h1&gt;</code></strong></td>
+    <td><del>Public routes use <code>h2.section-title</code> only</del></td>
+    <td><strong>Resolved (typeset pass):</strong> <code>h1.page-title</code> ต่อหน้า; หน้าแรกใช้ <code>h1.sr-only</code></td>
+    </tr>
+    <tr>
+    <td><strong>Timeline dark mode</strong></td>
+    <td><del><code>.timeline-dot</code>, <code>.timeline-content</code></del></td>
+    <td><strong>Resolved (quieter pass):</strong> ใช้ <code>var(--white)</code> แล้ว</td>
+    </tr>
+    <tr>
+    <td><strong>Hardcoded neutrals</strong></td>
+    <td><del><code>.btn-download</code>, certificates blue buttons</del></td>
+    <td><strong>Resolved (colorize pass):</strong> semantic tokens <code>--btn-*</code>, <code>--color-*</code>, purple-tinted <code>--bg-gray</code></td>
+    </tr>
+    <tr>
+    <td><strong>Image lazy loading</strong></td>
+    <td><del>No <code>loading=&quot;lazy&quot;</code> on images</del></td>
+    <td><strong>Resolved (polish pass):</strong> below-fold images lazy-loaded</td>
+    </tr>
+    <tr>
+    <td><strong>Focus indicators</strong></td>
+    <td><del>Missing on many controls</del></td>
+    <td><strong>Resolved (polish pass):</strong> global <code>:focus-visible</code> ring</td>
+    </tr>
+    <tr>
+    <td><strong>Admin modal a11y</strong></td>
+    <td><del>Missing aria-labelledby, focus on open</del></td>
+    <td><strong>Resolved (polish pass):</strong> labels, Thai close label, auto-focus</td>
+    </tr>
+    <tr>
+    <td><strong>Admin error handling</strong></td>
+    <td><del>Raw fetch + alert</del></td>
+    <td><strong>Resolved (harden pass):</strong> <code>fetchAdminJson</code> ทุก mutation, 401 → login, focus trap</td>
+    </tr>
+    <tr>
+    <td><strong>Nav layout animation</strong></td>
+    <td><del><code>transition: width</code> on underline</del></td>
+    <td><strong>Resolved (optimize pass):</strong> <code>transform: scaleX</code></td>
+    </tr>
+    <tr>
+    <td><strong>Admin scoped colors</strong></td>
+    <td><del>Hardcoded <code>#f44336</code>, <code>#4caf50</code></del></td>
+    <td><strong>Resolved (P2 pass):</strong> <code>--state-*</code> aliases จาก global tokens</td>
+    </tr>
+    <tr>
+    <td><strong>Long list perf</strong></td>
+    <td><del>No virtualization</del></td>
+    <td><strong>Resolved (P2 pass):</strong> <code>content-visibility: auto</code> บน admin items + cert rows</td>
+    </tr>
+    <tr>
+    <td><strong>Pagination touch targets</strong></td>
+    <td><del>36px page buttons in certificates</del></td>
+    <td><strong>Resolved (P3 pass):</strong> shared <code>.pagination</code> / <code>.page-btn</code> ใน <code>app.css</code> — <code>--tap-size</code> 44px</td>
+    </tr>
+    <tr>
+    <td><strong>Admin long lists</strong></td>
+    <td><del>Render all rows</del></td>
+    <td><strong>Resolved (P3 pass):</strong> pagination 25 รายการ/หน้า (ข่าว, กิจกรรม, เอกสาร)</td>
+    </tr>
+    <tr>
+    <td><strong>LCP banner</strong></td>
+    <td><del>No fetch priority</del></td>
+    <td><strong>Resolved (P3 pass):</strong> <code>fetchpriority=&quot;high&quot;</code> บน header banner</td>
+    </tr>
+    <tr>
+    <td><strong>Lightbox hardcoded white</strong></td>
+    <td><del><code>color: white</code></del></td>
+    <td><strong>Resolved (P3 pass):</strong> <code>var(--text-on-primary)</code></td>
+    </tr>
+    <tr>
+    <td><strong>Admin dark cards</strong></td>
+    <td><del>White cards in dark mode</del></td>
+    <td><strong>Resolved (P3 pass):</strong> scope <code>--bg-card</code> บน <code>.admin-layout</code> + <code>.modal-backdrop</code></td>
+    </tr>
+    <tr>
+    <td><strong>Reduced motion (admin)</strong></td>
+    <td><del>Nav transitions always on</del></td>
+    <td><strong>Resolved (P3 pass):</strong> <code>prefers-reduced-motion</code> บน admin nav</td>
+    </tr>
+    </tbody></table>
+    <p><strong>Deferred (manual / future):</strong> Lighthouse บน production URL, ทดบนมือถือจริง, virtual scroll ถ้ารายการ &gt;500 แถวและยังช้า</p>
+    <h2>Colors</h2>
+    <table>
+    <thead>
+    <tr>
+    <th>Role</th>
+    <th>Light</th>
+    <th>Dark (<code>body.dark-mode</code>)</th>
+    </tr>
+    </thead>
+    <tbody><tr>
+    <td>Primary</td>
+    <td><code>#7b1fa2</code></td>
+    <td><code>#ce93d8</code></td>
+    </tr>
+    <tr>
+    <td>Primary deep</td>
+    <td><code>#6a1b9a</code></td>
+    <td><code>#ab47bc</code></td>
+    </tr>
+    <tr>
+    <td>Primary tint</td>
+    <td><code>#f3e5f5</code></td>
+    <td><code>rgba(206,147,216,0.14)</code></td>
+    </tr>
+    <tr>
+    <td>Text</td>
+    <td><code>#333333</code> / <code>#5f6368</code></td>
+    <td><code>#e8eaed</code> / <code>#b8bcc2</code></td>
+    </tr>
+    <tr>
+    <td>Background</td>
+    <td><code>#f6f4f8</code></td>
+    <td><code>#1a1620</code></td>
+    </tr>
+    <tr>
+    <td>Surface (cards)</td>
+    <td><code>#ffffff</code></td>
+    <td><code>#2d2e31</code></td>
+    </tr>
+    <tr>
+    <td>Shadow</td>
+    <td><code>rgba(51,33,68,0.08)</code></td>
+    <td><code>rgba(0,0,0,0.35)</code></td>
+    </tr>
+    </tbody></table>
+    <p><strong>Character:</strong> <em>Royal Thai education purple</em> — ไม่ neon ไม่ pastel ทั้งหน้า; ม่วงใช้กับหัวข้อ section, nav active, เส้น timeline, และปุ่ม <code>btn-view</code>.</p>
+    <p><strong>Admin-only:</strong> <code>--bg-admin: #f4f7f6</code>, borders <code>#e0e0e0</code>, success <code>#2e7d32</code>, error <code>#c62828</code>. Dark mode: tokens scoped บน <code>.admin-layout</code> (ไม่ inherit จาก <code>:root</code> <code>--white</code> โดยตรง)</p>
+    <h2>Typography</h2>
+    <ul>
+    <li><strong>Family:</strong> Sarabun 300–700 (loaded in <code>app.html</code>); single-family hierarchy via weight + scale</li>
+    <li><strong>Scale (CSS tokens):</strong> <code>--text-xs</code> (0.8125rem) → <code>--text-2xl</code> (clamp 1.375–1.75rem); ratio ~1.25 between steps</li>
+    <li><strong>Page title:</strong> <code>.page-title</code> / <code>h1</code> — fluid <code>--text-2xl</code>, weight 700, <code>text-wrap: balance</code></li>
+    <li><strong>Section title:</strong> <code>.section-title</code> / <code>h2</code> — <code>--text-xl</code>, weight 600 (home page sections)</li>
+    <li><strong>Body:</strong> <code>--text-base</code> / <code>--leading-normal</code> (1.6); dark mode <code>--leading-relaxed</code> (1.7)</li>
+    <li><strong>Metadata:</strong> <code>--text-sm</code> for dates; <code>--text-lg</code> + weight 600 for list titles (<code>news-link-title</code>, <code>doc-title</code>)</li>
+    <li><strong>Prose:</strong> <code>.prose</code> caps measure at <code>65ch</code>, <code>text-wrap: pretty</code></li>
+    <li><strong>Nav:</strong> <code>clamp(0.85rem, 1.1vw, 0.95rem)</code> with underline grow on hover</li>
+    <li><strong>ไทย:</strong> หลีกเลี่ยงการย่อข้อความสำคัญ; ใช้ <code>.ui-ellipsis</code> เฉพาะ metadata</li>
+    </ul>
+    <h2>Elevation</h2>
+    <p>Flat-to-lifted: การ์ดใช้ <code>box-shadow: 0 2px 4px var(--shadow)</code> หรือ <code>0 2px 8px</code>; hover มัก <code>translateY(-5px)</code> หรือ <code>translateX(5px)</code> + shadow เพิ่ม. ไม่มี elevation scale เป็นขั้น — ควรค่อยๆ ทำให้สม่ำเสมอเมื่อ refactor side-tabs.</p>
+    <h2>Components</h2>
+    <table>
+    <thead>
+    <tr>
+    <th>Component</th>
+    <th>Pattern</th>
+    </tr>
+    </thead>
+    <tbody><tr>
+    <td><strong>Sticky nav</strong></td>
+    <td><code>.sticky-nav</code> white surface, shadow, active link purple + 2px bottom bar</td>
+    </tr>
+    <tr>
+    <td><strong>Section title</strong></td>
+    <td>Purple, flex + emoji prefix บางหน้า</td>
+    </tr>
+    <tr>
+    <td><strong>News/doc list item</strong></td>
+    <td>White card, 1px <code>--border-subtle</code> border, hover shadow (no side-tab)</td>
+    </tr>
+    <tr>
+    <td><strong>Timeline</strong></td>
+    <td>Vertical line <code>primary-purple-light</code>, dot + content card on <code>var(--white)</code></td>
+    </tr>
+    <tr>
+    <td><strong>Activity card</strong></td>
+    <td>12px radius, purple-tint border, image top</td>
+    </tr>
+    <tr>
+    <td><strong>Sidebar cards</strong></td>
+    <td>Icon + title stack, hover lift</td>
+    </tr>
+    <tr>
+    <td><strong>Buttons</strong></td>
+    <td><code>btn-view</code> (purple tint), <code>btn-download</code> (white/gray outline), <code>btn-download-all</code> (#6c5ce7 — secondary accent, consider aligning to primary)</td>
+    </tr>
+    <tr>
+    <td><strong>Admin</strong></td>
+    <td>Purple sticky tab bar, white header card, forms with <code>--bg-input</code>, modals, collection tables</td>
+    </tr>
+    <tr>
+    <td><strong>Theme toggle</strong></td>
+    <td><code>.theme-toggle</code> in header — toggles <code>body.dark-mode</code></td>
+    </tr>
+    </tbody></table>
+    <p><strong>Touch:</strong> <code>--tap-size: 44px</code>, <code>.ui-tap</code> helper.</p>
+    <h2>Do&#39;s and Don&#39;ts</h2>
+    <p><strong>Do</strong></p>
+    <ul>
+    <li>ใช้ CSS variables จาก <code>:root</code> / <code>body.dark-mode</code> สำหรับทุก surface และ border</li>
+    <li>รักษา <code>#7b1fa2</code> เป็น primary; ปรับ contrast และ focus ก่อนเปลี่ยนสี</li>
+    <li>ใส่ <code>&lt;h1&gt;</code> หนึ่งต่อหน้าสาธารณะ (อาจ visually integrated กับ banner)</li>
+    <li>ทดสอบ dark mode บน timeline, การ์ดข่าว, และ admin forms</li>
+    <li>ใช้ Sarabun และภาษาไทยเต็มประโยคในป้ายปุ่ม</li>
+    </ul>
+    <p><strong>Don&#39;t</strong></p>
+    <ul>
+    <li>รัน <code>palette.mjs</code> เพื่อแทนที่แบรนด์ม่วงโดยไม่ได้รับอนุมัติชัด</li>
+    <li>เพิ่ม <code>border-left</code> หนาเป็น accent หลัก (side-tab anti-pattern)</li>
+    <li>Hardcode <code>white</code> / <code>#ffffff</code> ใน component ที่ต้องรองรับ dark mode</li>
+    <li>นำ aesthetic landing SaaS (hero gradient, Inter, bento เกินจำเป็น) มาที่พอร์ทัลราชการ</li>
+    <li>ลืมแยก register: หน้าสาธารณะ = brand, <code>/admin</code> = product (density และ error states สำคัญกว่า wow-factor)</li>
+    </ul>
+
+  </main>
+</body>
+</html>

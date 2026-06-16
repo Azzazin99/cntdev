@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>cntdev — Tech Stack &amp; Data Schema</title>
+  <link rel="stylesheet" href="./doc.css">
+</head>
+<body>
+  <main class="doc">
+    <h1>cntdev — Tech Stack &amp; Data Schema</h1>
+    <p>เว็บไซต์กลุ่มพัฒนาครูและบุคลากรทางการศึกษา สพป.ชัยนาท</p>
+    <table>
+    <thead>
+    <tr>
+    <th></th>
+    <th></th>
+    </tr>
+    </thead>
+    <tbody><tr>
+    <td><strong>Production</strong></td>
+    <td><a href="https://cntdev.vercel.app">https://cntdev.vercel.app</a></td>
+    </tr>
+    <tr>
+    <td><strong>GitHub</strong></td>
+    <td><a href="https://github.com/Azzazin99/cntdev">https://github.com/Azzazin99/cntdev</a></td>
+    </tr>
+    <tr>
+    <td><strong>Firebase project</strong></td>
+    <td>cntdev-e49f5</td>
+    </tr>
+    <tr>
+    <td><strong>อัปเดตล่าสุด</strong></td>
+    <td>2026-06-04</td>
+    </tr>
+    </tbody></table>
+    <p>เอกสาร JSON แบบ structured: <a href="./data-schema.json">data-schema.json</a> — นิยามโดเมน: <a href="../CONTEXT.md">CONTEXT.md</a> — เมื่อแก้โครงสร้างให้อัปเดตทั้งไฟล์นี้และ JSON ให้ตรงกัน</p>
+    <hr>
+    <h2>ภาพรวมสถาปัตยกรรม</h2>
+    <pre><code>ผู้ใช้ → Vercel (SvelteKit)
+             ├─ หน้าสาธารณะ (อ่าน API / static)
+             ├─ /login → Turnstile + session cookie
+             └─ /admin → CRUD ผ่าน API
+                  ↓
+             Firebase Firestore + Vercel Blob (production)
+             หรือ static/assets/data/*.json (dev ไม่มี Firebase)
+    </code></pre>
+    <hr>
+    <h2>Tech Stack</h2>
+    <table>
+    <thead>
+    <tr>
+    <th>ชั้น</th>
+    <th>เทคโนโลยี</th>
+    <th>หมายเหตุ</th>
+    </tr>
+    </thead>
+    <tbody><tr>
+    <td>UI</td>
+    <td>Svelte 5 + SvelteKit 2</td>
+    <td>หน้าเว็บและ routing ใน <code>src/routes/</code></td>
+    </tr>
+    <tr>
+    <td>Build</td>
+    <td>Vite 8</td>
+    <td><code>npm run dev</code> / <code>npm run build</code></td>
+    </tr>
+    <tr>
+    <td>Hosting</td>
+    <td>Vercel</td>
+    <td><code>adapter-vercel</code>, deploy จาก branch <code>main</code></td>
+    </tr>
+    <tr>
+    <td>Database</td>
+    <td>Firebase Firestore</td>
+    <td>production เมื่อตั้ง <code>FIREBASE_SERVICE_ACCOUNT_JSON</code></td>
+    </tr>
+    <tr>
+    <td>File storage</td>
+    <td>Vercel Blob</td>
+    <td>รูปกิจกรรม/บุคลากร — PDF ใช้ <a href="./google-drive-workflow.html">Google Drive</a></td>
+    </tr>
+    <tr>
+    <td>Auth</td>
+    <td>Cookie session (<code>localAuth</code>)</td>
+    <td>username <code>admin</code> + <code>ADMIN_PASSWORD</code></td>
+    </tr>
+    <tr>
+    <td>Bot protection</td>
+    <td>Cloudflare Turnstile</td>
+    <td>หน้า <code>/login</code> เมื่อตั้ง env keys</td>
+    </tr>
+    <tr>
+    <td>Edge middleware</td>
+    <td><code>hooks.server.js</code></td>
+    <td>rate limit, cache headers, session</td>
+    </tr>
+    </tbody></table>
+    <hr>
+    <h2>Data Storage Schema — ข้อมูลเก็บที่ไหน</h2>
+    <h3>สรุปตาราง</h3>
+    <table>
+    <thead>
+    <tr>
+    <th>id</th>
+    <th>ชื่อ</th>
+    <th>หน้าเว็บ</th>
+    <th>Admin tab</th>
+    <th>Firestore (production)</th>
+    <th>JSON fallback (dev)</th>
+    </tr>
+    </thead>
+    <tbody><tr>
+    <td>news</td>
+    <td>ข่าวประชาสัมพันธ์</td>
+    <td><code>/news</code></td>
+    <td>news</td>
+    <td>collection <code>news</code></td>
+    <td><code>static/assets/data/news.json</code></td>
+    </tr>
+    <tr>
+    <td>activities</td>
+    <td>ภาพกิจกรรม</td>
+    <td><code>/activities</code></td>
+    <td>activity</td>
+    <td>collection <code>activities</code></td>
+    <td><code>static/assets/data/activities.json</code></td>
+    </tr>
+    <tr>
+    <td>manuals</td>
+    <td>คู่มือการปฏิบัติงาน</td>
+    <td><code>/manual</code></td>
+    <td>manuals</td>
+    <td>collection <code>manuals</code></td>
+    <td><code>static/assets/data/manuals.json</code></td>
+    </tr>
+    <tr>
+    <td>knowledge</td>
+    <td>คลังความรู้</td>
+    <td><code>/knowledge</code></td>
+    <td>knowledge</td>
+    <td>collection <code>knowledge</code></td>
+    <td><code>static/assets/data/knowledge.json</code></td>
+    </tr>
+    <tr>
+    <td>plans</td>
+    <td>แผนพัฒนาครู</td>
+    <td><code>/plan</code></td>
+    <td>plans</td>
+    <td>collection <code>plans</code></td>
+    <td><code>static/assets/data/plans.json</code></td>
+    </tr>
+    <tr>
+    <td>forms</td>
+    <td>แบบฟอร์ม</td>
+    <td><code>/forms</code></td>
+    <td>forms</td>
+    <td>collection <code>forms</code></td>
+    <td><code>static/assets/data/forms.json</code></td>
+    </tr>
+    <tr>
+    <td>authority</td>
+    <td>อำนาจหน้าที่</td>
+    <td><code>/authority</code></td>
+    <td>authority</td>
+    <td><code>site_data</code> / doc <code>authority</code></td>
+    <td><code>static/assets/data/authority.json</code></td>
+    </tr>
+    <tr>
+    <td>personnel</td>
+    <td>บุคลากร</td>
+    <td><code>/users</code></td>
+    <td>personnel</td>
+    <td>collection <code>personnel</code></td>
+    <td><code>static/assets/data/personnel.json</code></td>
+    </tr>
+    <tr>
+    <td>certificates</td>
+    <td>คลังเกียรติบัตร</td>
+    <td><code>/certificates</code></td>
+    <td>certificates</td>
+    <td><code>site_data</code> / doc <code>certificates_config</code></td>
+    <td><code>static/assets/data/certificates_config.json</code></td>
+    </tr>
+    </tbody></table>
+    <h3>Admin tab → ที่เก็บข้อมูล</h3>
+    <p>นิยามคำศัพท์: <a href="../CONTEXT.md">CONTEXT.md</a> — metadata รวมที่ Firestore (หรือ JSON ใน dev); ไฟล์จริงอยู่แหล่งภายนอกแยกต่างหาก</p>
+    <table>
+    <thead>
+    <tr>
+    <th>แท็บ admin</th>
+    <th>API</th>
+    <th>Metadata (production)</th>
+    <th>ไฟล์จริง</th>
+    <th>รูปแบบ admin</th>
+    </tr>
+    </thead>
+    <tbody><tr>
+    <td>ข่าวประชาสัมพันธ์</td>
+    <td><code>/api/news</code></td>
+    <td>Firestore <code>news</code></td>
+    <td>PDF = ลิงก์ Google Drive ใน <code>link</code></td>
+    <td>Item collection</td>
+    </tr>
+    <tr>
+    <td>ภาพกิจกรรม</td>
+    <td><code>/api/activities</code></td>
+    <td>Firestore <code>activities</code></td>
+    <td>รูป → Vercel Blob</td>
+    <td>Item collection</td>
+    </tr>
+    <tr>
+    <td>คู่มือ / คลังความรู้ / แผน / แบบฟอร์ม</td>
+    <td><code>/api/site-data/{key}</code></td>
+    <td>Firestore <code>{key}</code></td>
+    <td>PDF = ลิงก์ Google Drive ใน <code>link</code></td>
+    <td>Item collection</td>
+    </tr>
+    <tr>
+    <td>อำนาจหน้าที่</td>
+    <td><code>/api/site-data/authority</code></td>
+    <td>Firestore <code>site_data/authority</code></td>
+    <td>ไม่มีไฟล์ — array ของ string</td>
+    <td>Bulk list</td>
+    </tr>
+    <tr>
+    <td>บุคลากร</td>
+    <td><code>/api/site-data/personnel</code></td>
+    <td>Firestore <code>personnel</code></td>
+    <td>รูป → Vercel Blob</td>
+    <td>Item collection</td>
+    </tr>
+    <tr>
+    <td>คลังเกียรติบัตร</td>
+    <td><code>/api/certificates/config</code></td>
+    <td>Firestore <code>site_data/certificates_config</code> (field <code>sheetUrl</code>)</td>
+    <td>ข้อมูลจริงใน Google Sheets (CSV)</td>
+    <td>Config เดียว</td>
+    </tr>
+    </tbody></table>
+    <p>Dev fallback ทุกแท็บ: <code>static/assets/data/*.json</code> เมื่อไม่มี <code>FIREBASE_SERVICE_ACCOUNT_JSON</code></p>
+    <h3>รายละเอียดแต่ละประเภท</h3>
+    <h4>ข่าวประชาสัมพันธ์ (<code>news</code>)</h4>
+    <table>
+    <thead>
+    <tr>
+    <th></th>
+    <th></th>
+    </tr>
+    </thead>
+    <tbody><tr>
+    <td>API อ่าน</td>
+    <td><code>GET /api/news</code></td>
+    </tr>
+    <tr>
+    <td>API เขียน</td>
+    <td><code>POST</code> / <code>PUT</code> / <code>DELETE /api/news</code></td>
+    </tr>
+    <tr>
+    <td>เอกสาร (PDF)</td>
+    <td>เก็บ URL ใน field <code>link</code> — วางลิงก์ Google Drive ใน admin (ไม่อัปโหลดบนเว็บ)</td>
+    </tr>
+    <tr>
+    <td>PDF production</td>
+    <td>ลิงก์ Google Drive (แชร์「ทุกคนที่มีลิงก์」)</td>
+    </tr>
+    <tr>
+    <td>PDF dev</td>
+    <td>ลิงก์ Drive หรือ URL ใน <code>static/assets/documents/news/</code> (รายการเก่า)</td>
+    </tr>
+    <tr>
+    <td>โค้ด PDF</td>
+    <td>ลิงก์ Google Drive ใน admin — ดู <a href="./google-drive-workflow.html">google-drive-workflow.html</a></td>
+    </tr>
+    <tr>
+    <td>ขีดจำกัดไฟล์</td>
+    <td>PDF: ลิงก์ Drive เท่านั้น; รูป 5 MB — <code>src/lib/uploadLimits.js</code></td>
+    </tr>
+    <tr>
+    <td>ข้อความ error admin</td>
+    <td><code>src/lib/adminFetch.js</code> — แปล HTTP 401/403/413 เป็นภาษาไทย</td>
+    </tr>
+    <tr>
+    <td>หมายเหตุ</td>
+    <td>PDF: <a href="./google-drive-workflow.html">google-drive-workflow.html</a>; รูป: <a href="./vercel-blob-setup.html">vercel-blob-setup.html</a></td>
+    </tr>
+    <tr>
+    <td>รูปปก</td>
+    <td><code>image</code> = logo สำรอง (<code>assets/images/logos/moe.png</code>)</td>
+    </tr>
+    <tr>
+    <td>หมวดหมู่</td>
+    <td><code>category</code> = <code>ข่าวประชาสัมพันธ์</code> เสมอ (API ตั้งให้ — ไม่มีใน admin)</td>
+    </tr>
+    </tbody></table>
+    <h4>ภาพกิจกรรม (<code>activities</code>)</h4>
+    <table>
+    <thead>
+    <tr>
+    <th></th>
+    <th></th>
+    </tr>
+    </thead>
+    <tbody><tr>
+    <td>API อ่าน</td>
+    <td><code>GET /api/activities</code></td>
+    </tr>
+    <tr>
+    <td>API เขียน</td>
+    <td><code>POST</code> / <code>PUT</code> / <code>DELETE /api/activities</code></td>
+    </tr>
+    <tr>
+    <td>รูป production</td>
+    <td>Vercel Blob: <code>activities/{filename}</code></td>
+    </tr>
+    <tr>
+    <td>รูป dev</td>
+    <td><code>static/assets/images/activity/</code></td>
+    </tr>
+    <tr>
+    <td>โค้ดรูป</td>
+    <td><code>src/lib/server/contentStore.js</code> → <code>saveImageFile(&#39;activities&#39;)</code></td>
+    </tr>
+    </tbody></table>
+    <h4>คู่มือ / คลังความรู้ / แผน / แบบฟอร์ม (<code>manuals</code> / <code>knowledge</code> / <code>plans</code> / <code>forms</code>)</h4>
+    <p>ทำงานแบบเดียวกับข่าว — แต่ละรายการเป็น <strong>document แยก</strong> ใน collection ของตัวเอง เพิ่ม/แก้/ลบทีละรายการผ่าน modal ในหน้า admin</p>
+    <table>
+    <thead>
+    <tr>
+    <th></th>
+    <th></th>
+    </tr>
+    </thead>
+    <tbody><tr>
+    <td>API อ่าน</td>
+    <td><code>GET /api/site-data/{key}</code> คืน <code>{ items, source }</code> (เรียงตาม <code>sortOrder</code>)</td>
+    </tr>
+    <tr>
+    <td>API เขียน</td>
+    <td><code>POST</code> / <code>PUT</code> / <code>DELETE /api/site-data/{key}</code> (ต่อรายการ)</td>
+    </tr>
+    <tr>
+    <td>ฟิลด์</td>
+    <td><code>id</code>, <code>title</code>, <code>link</code>, <code>sortOrder</code></td>
+    </tr>
+    <tr>
+    <td>เอกสาร (PDF)</td>
+    <td>เก็บ URL ใน field <code>link</code> — วางลิงก์ Google Drive ใน admin (ไม่อัปโหลดบนเว็บ)</td>
+    </tr>
+    <tr>
+    <td>PDF dev</td>
+    <td>ลิงก์ Drive หรือ URL ใน <code>static/assets/documents/{key}/</code> (รายการเก่า)</td>
+    </tr>
+    <tr>
+    <td>โค้ด</td>
+    <td><code>src/lib/documentLink.js</code>, <code>src/routes/api/site-data/[key]/+server.js</code></td>
+    </tr>
+    </tbody></table>
+    <h4>อำนาจหน้าที่ (<code>authority</code>)</h4>
+    <p>ยังเป็นโมเดล bulk — <code>site_data</code> document เดียว (array ของ string), แก้แบบ &quot;บันทึกทั้งหมด&quot; ใน admin</p>
+    <h4>บุคลากร (<code>personnel</code>)</h4>
+    <p>ทำงานแบบเดียวกับภาพกิจกรรม — แต่ละคนเป็น document แยกใน collection <code>personnel</code></p>
+    <table>
+    <thead>
+    <tr>
+    <th></th>
+    <th></th>
+    </tr>
+    </thead>
+    <tbody><tr>
+    <td>API อ่าน</td>
+    <td><code>GET /api/site-data/personnel</code></td>
+    </tr>
+    <tr>
+    <td>API เขียน</td>
+    <td><code>POST</code> / <code>PUT</code> / <code>DELETE /api/site-data/personnel</code> (ต่อรายการ)</td>
+    </tr>
+    <tr>
+    <td>ฟิลด์</td>
+    <td><code>id</code>, <code>name</code>, <code>position</code>, <code>phone</code>, <code>image</code>, <code>sortOrder</code></td>
+    </tr>
+    <tr>
+    <td>อัปโหลดรูป</td>
+    <td>ส่ง <code>imageFile</code> ใน FormData → <code>saveImageFile(&#39;personnel&#39;)</code></td>
+    </tr>
+    <tr>
+    <td>รูป production</td>
+    <td>Vercel Blob: <code>personnel/{filename}</code></td>
+    </tr>
+    <tr>
+    <td>รูป dev</td>
+    <td><code>static/assets/images/personnel/</code></td>
+    </tr>
+    </tbody></table>
+    <blockquote>
+    <p>migration ครั้งเดียวจาก <code>site_data/{key}</code> เดิม → collection ต่อรายการ: <code>node scripts/migrate-lists-to-collections.mjs</code> (ใช้ <code>--force</code> เพื่อ resync ทับข้อมูลเก่าใน collection ให้ตรงกับ <code>site_data</code>)</p>
+    </blockquote>
+    <h4>คลังเกียรติบัตร (<code>certificates</code>)</h4>
+    <table>
+    <thead>
+    <tr>
+    <th></th>
+    <th></th>
+    </tr>
+    </thead>
+    <tbody><tr>
+    <td>API อ่าน</td>
+    <td><code>GET /api/certificates/config</code></td>
+    </tr>
+    <tr>
+    <td>API เขียน</td>
+    <td><code>POST /api/certificates/config</code></td>
+    </tr>
+    <tr>
+    <td>ข้อมูลภายนอก</td>
+    <td>Google Sheets CSV (<code>sheetUrl</code> ใน config)</td>
+    </tr>
+    <tr>
+    <td>โค้ด</td>
+    <td><code>src/lib/server/certificatesConfig.js</code></td>
+    </tr>
+    </tbody></table>
+    <hr>
+    <h2>Environment Variables</h2>
+    <p>อย่าใส่ค่าจริงในเอกสาร — ตั้งบน <strong>Vercel</strong> (Production + Preview) และ <strong><code>.env.local</code></strong> เท่านั้น</p>
+    <table>
+    <thead>
+    <tr>
+    <th>ตัวแปร</th>
+    <th>ประเภท</th>
+    <th>ที่เก็บ</th>
+    <th>จำเป็น</th>
+    <th>คำอธิบาย</th>
+    </tr>
+    </thead>
+    <tbody><tr>
+    <td><code>ADMIN_PASSWORD</code></td>
+    <td>secret</td>
+    <td>Vercel, <code>.env.local</code></td>
+    <td>production</td>
+    <td>รหัสผ่าน admin (username คงที่: <code>admin</code>)</td>
+    </tr>
+    <tr>
+    <td><code>AUTH_SESSION_SECRET</code></td>
+    <td>secret</td>
+    <td>Vercel, <code>.env.local</code></td>
+    <td>production</td>
+    <td>คีย์ลงนาม session cookie (สตริงสุ่มยาว 32+ ตัว)</td>
+    </tr>
+    <tr>
+    <td><code>PUBLIC_TURNSTILE_SITE_KEY</code></td>
+    <td>public</td>
+    <td>Vercel, <code>.env.local</code></td>
+    <td>optional</td>
+    <td>Cloudflare Turnstile Site Key — ไม่ตั้ง = ข้าม widget</td>
+    </tr>
+    <tr>
+    <td><code>TURNSTILE_SECRET_KEY</code></td>
+    <td>secret</td>
+    <td>Vercel, <code>.env.local</code></td>
+    <td>optional</td>
+    <td>Cloudflare Turnstile Secret — คู่กับ Site Key</td>
+    </tr>
+    <tr>
+    <td><code>FIREBASE_SERVICE_ACCOUNT_JSON</code></td>
+    <td>secret</td>
+    <td>Vercel, <code>.env.local</code></td>
+    <td>production</td>
+    <td>JSON service account บรรทัดเดียว — เปิด Firestore/Storage บน production</td>
+    </tr>
+    </tbody></table>
+    <p>ดูรายการใน <a href="../.env.example">.env.example</a></p>
+    <hr>
+    <h2>Code Map — แก้อะไรไปไฟล์ไหน</h2>
+    <table>
+    <thead>
+    <tr>
+    <th>งาน</th>
+    <th>ไฟล์</th>
+    </tr>
+    </thead>
+    <tbody><tr>
+    <td>เมนู / layout ทั้งเว็บ</td>
+    <td><code>src/routes/+layout.svelte</code>, <code>src/components/Header.svelte</code>, <code>src/components/Footer.svelte</code></td>
+    </tr>
+    <tr>
+    <td>หน้าแรก</td>
+    <td><code>src/routes/+page.svelte</code></td>
+    </tr>
+    <tr>
+    <td>หน้า admin (CRUD)</td>
+    <td><code>src/routes/admin/+page.svelte</code>, <code>src/routes/admin/+layout.server.js</code></td>
+    </tr>
+    <tr>
+    <td>Login / logout</td>
+    <td><code>src/routes/login/</code>, <code>src/routes/logout/</code>, <code>src/lib/server/localAuth.js</code>, <code>src/lib/server/turnstile.js</code></td>
+    </tr>
+    <tr>
+    <td>API ข่าว/กิจกรรม</td>
+    <td><code>src/routes/api/news/+server.js</code>, <code>src/routes/api/activities/+server.js</code></td>
+    </tr>
+    <tr>
+    <td>API รายการเว็บ (manuals, personnel, …)</td>
+    <td><code>src/routes/api/site-data/[key]/+server.js</code></td>
+    </tr>
+    <tr>
+    <td>API เกียรติบัตร</td>
+    <td><code>src/routes/api/certificates/config/+server.js</code>, <code>src/lib/server/certificatesConfig.js</code></td>
+    </tr>
+    <tr>
+    <td>อัปโหลดรูปบุคลากร</td>
+    <td><code>src/routes/api/personnel/upload/+server.js</code></td>
+    </tr>
+    <tr>
+    <td>อัปโหลดรูป Vercel Blob</td>
+    <td><code>src/routes/api/upload/blob/+server.js</code>, <code>src/lib/uploadImage.js</code>, <code>src/lib/server/blobStorage.js</code></td>
+    </tr>
+    <tr>
+    <td>ชั้นข้อมูล (Firestore/JSON/รูป)</td>
+    <td><code>src/lib/server/contentStore.js</code>, <code>src/lib/server/firebaseAdmin.js</code></td>
+    </tr>
+    <tr>
+    <td>Rate limit + cache headers</td>
+    <td><code>src/hooks.server.js</code>, <code>src/lib/server/rateLimit.js</code></td>
+    </tr>
+    <tr>
+    <td>สไตล์รวม</td>
+    <td><code>src/app.css</code></td>
+    </tr>
+    <tr>
+    <td>รูป/JSON สำรอง (static)</td>
+    <td><code>static/assets/images/</code>, <code>static/assets/data/</code></td>
+    </tr>
+    <tr>
+    <td>Deploy / build</td>
+    <td><code>vercel.json</code>, <code>svelte.config.js</code>, <code>package.json</code></td>
+    </tr>
+    <tr>
+    <td>Cloudflare setup</td>
+    <td><a href="./cloudflare-setup.html">cloudflare-setup.html</a></td>
+    </tr>
+    </tbody></table>
+    <hr>
+    <h2>Deploy &amp; Git</h2>
+    <table>
+    <thead>
+    <tr>
+    <th></th>
+    <th></th>
+    </tr>
+    </thead>
+    <tbody><tr>
+    <td>Hosting</td>
+    <td>Vercel project: <strong>cntdev</strong></td>
+    </tr>
+    <tr>
+    <td>Branch</td>
+    <td><code>main</code></td>
+    </tr>
+    <tr>
+    <td>Push deploy</td>
+    <td><code>git add .</code> → <code>git commit -m &quot;...&quot;</code> → <code>git push origin main</code></td>
+    </tr>
+    <tr>
+    <td>Manual deploy</td>
+    <td><code>vercel --prod</code> (ไม่จำเป็นถ้าเชื่อม GitHub)</td>
+    </tr>
+    <tr>
+    <td>หลังเปลี่ยน env</td>
+    <td><strong>Redeploy</strong> บน Vercel หลังเปลี่ยน Environment Variables</td>
+    </tr>
+    </tbody></table>
+    <hr>
+    <h2>หมายเหตุโค้ดเก่า (legacy)</h2>
+    <p>ไฟล์ HTML เก่าใน root repo (<code>index.html</code>, <code>admin.html</code>, <code>news.html</code> ฯลฯ) เป็นสแต็กเก่า — <strong>ไม่ใช่</strong> เว็บที่รันบน Vercel</p>
+    <p>แอปที่ใช้งานจริง: <strong>SvelteKit ใน <code>src/</code></strong> — deploy ผ่าน Vercel จาก branch <code>main</code></p>
+    <hr>
+    <h2>เอกสารเพิ่มเติม</h2>
+    <ul>
+    <li><a href="./data-schema.json">data-schema.json</a> — schema แบบ JSON สำหรับ agent</li>
+    <li><a href="./cloudflare-setup.html">cloudflare-setup.html</a> — Cloudflare Turnstile + CDN เมื่อมีโดเมน</li>
+    <li><a href="../README.html">README.html</a> — ทางเข้าโปรเจกต์</li>
+    </ul>
+
+  </main>
+</body>
+</html>

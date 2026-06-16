@@ -5,8 +5,9 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { currentTheme, initTheme, toggleTheme } from '$lib/theme';
+
 	export let data;
-	
+
 	const baseNavItems = [
 		{ text: 'หน้าหลัก', link: '/' },
 		{ text: 'บุคลากร', link: '/users' },
@@ -36,18 +37,11 @@
 	onMount(initTheme);
 </script>
 
-<svelte:head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<link rel="icon" href="/favicon.ico">
-	<!-- Font -->
-	<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-</svelte:head>
-
 <div class="site-wrapper">
+	<a href="#main-content" class="skip-link">ข้ามไปเนื้อหาหลัก</a>
 	<Header {navItems} {toggleTheme} currentTheme={$currentTheme} />
 	
-	<main>
+	<main id="main-content">
 		<slot />
 	</main>
 	
@@ -56,7 +50,7 @@
 
 <style>
 	:global(body) {
-		font-family: 'Sarabun', sans-serif;
+		font-family: var(--font-main);
 		margin: 0;
 		padding: 0;
 	}
@@ -65,6 +59,7 @@
 		min-height: 100vh;
 		display: flex;
 		flex-direction: column;
+		position: relative;
 	}
 	
 	main {

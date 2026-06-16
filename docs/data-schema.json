@@ -1,0 +1,271 @@
+{
+  "meta": {
+    "projectName": "cntdev_vercel",
+    "description": "เว็บไซต์กลุ่มพัฒนาครูและบุคลากรทางการศึกษา สพป.ชัยนาท",
+    "productionUrl": "https://cntdev.vercel.app",
+    "repo": "https://github.com/Azzazin99/cntdev",
+    "firebaseProject": "cntdev-e49f5",
+    "lastUpdated": "2026-06-16"
+  },
+  "stack": [
+    { "layer": "UI", "technology": "Svelte 5 + SvelteKit 2", "notes": "หน้าเว็บและ routing ใน src/routes/" },
+    { "layer": "Build", "technology": "Vite 8", "notes": "npm run dev / build" },
+    { "layer": "Hosting", "technology": "Vercel", "notes": "adapter-vercel, deploy จาก branch main" },
+    { "layer": "Database", "technology": "Firebase Firestore", "notes": "production เมื่อตั้ง FIREBASE_SERVICE_ACCOUNT_JSON" },
+    { "layer": "File storage", "technology": "Vercel Blob (news PDF + images) + Google Drive links (other PDF)", "notes": "docs/vercel-blob-setup.html, docs/google-drive-workflow.html" },
+    { "layer": "Auth", "technology": "Cookie session (localAuth)", "notes": "username admin + ADMIN_PASSWORD" },
+    { "layer": "Bot protection", "technology": "Cloudflare Turnstile", "notes": "หน้า /login เมื่อตั้ง env keys" },
+    { "layer": "Edge middleware", "technology": "hooks.server.js", "notes": "rate limit, cache headers, session" }
+  ],
+  "contentStores": [
+    {
+      "id": "news",
+      "label": "ข่าวประชาสัมพันธ์",
+      "publicRoute": "/news",
+      "adminTab": "news",
+      "api": {
+        "read": "GET /api/news",
+        "write": "POST|PUT|DELETE /api/news"
+      },
+      "storage": {
+        "production": { "type": "firestore", "collection": "news" },
+        "devFallback": { "type": "json", "path": "static/assets/data/news.json" },
+        "documents": {
+          "field": "link",
+          "production": "Vercel Blob URL หรือลิงก์ Google Drive",
+          "devFallback": "static/assets/documents/news/ (เมื่อไม่มี Blob token)",
+          "uploadFlow": "admin อัปโหลด PDF ผ่าน Vercel Blob (client upload สูงสุด 20 MB) หรือวางลิงก์ Google Drive — multipart fallback ใน dev",
+          "code": "src/lib/uploadPdf.js, src/lib/documentLink.js, src/routes/api/news/+server.js",
+          "maxSizeMb": 20
+        },
+        "thumbnail": {
+          "field": "image",
+          "default": "assets/images/logos/moe.png"
+        },
+        "category": {
+          "field": "category",
+          "value": "ข่าวประชาสัมพันธ์",
+          "notes": "ค่าคงที่จาก API — admin ไม่เลือกหมวดหมู่"
+        }
+      }
+    },
+    {
+      "id": "activities",
+      "label": "ภาพกิจกรรม",
+      "publicRoute": "/activities",
+      "adminTab": "activity",
+      "api": {
+        "read": "GET /api/activities",
+        "write": "POST|PUT|DELETE /api/activities"
+      },
+      "storage": {
+        "production": { "type": "firestore", "collection": "activities" },
+        "devFallback": { "type": "json", "path": "static/assets/data/activities.json" },
+        "images": {
+          "production": "Vercel Blob: activities/{filename}",
+          "devFallback": "static/assets/images/activity/",
+          "uploadFlow": "admin อัปโหลดรูปในแท็บภาพกิจกรรม — Vercel Blob บน production",
+          "code": "src/lib/server/contentStore.js → saveImageFile('activities')"
+        }
+      }
+    },
+    {
+      "id": "manuals",
+      "label": "คู่มือการปฏิบัติงาน",
+      "publicRoute": "/manual",
+      "adminTab": "manuals",
+      "api": { "read": "GET /api/site-data/manuals", "write": "POST|PUT|DELETE /api/site-data/manuals" },
+      "itemModel": "per-item document (เหมือนข่าว) — fields: id, title, link, sortOrder",
+      "storage": {
+        "production": { "type": "firestore", "collection": "manuals" },
+        "devFallback": { "type": "json", "path": "static/assets/data/manuals.json" },
+        "documents": {
+          "field": "link",
+          "production": "ลิงก์ Google Drive",
+          "devFallback": "static/assets/documents/manuals/",
+          "uploadFlow": "admin วางลิงก์ Google Drive ในช่องลิงก์เอกสาร — ไม่อัปโหลด PDF บนเว็บ",
+          "code": "src/lib/documentLink.js, src/routes/api/site-data/[key]/+server.js"
+        }
+      }
+    },
+    {
+      "id": "knowledge",
+      "label": "คลังความรู้",
+      "publicRoute": "/knowledge",
+      "adminTab": "knowledge",
+      "api": { "read": "GET /api/site-data/knowledge", "write": "POST|PUT|DELETE /api/site-data/knowledge" },
+      "itemModel": "per-item document (เหมือนข่าว) — fields: id, title, link, sortOrder",
+      "storage": {
+        "production": { "type": "firestore", "collection": "knowledge" },
+        "devFallback": { "type": "json", "path": "static/assets/data/knowledge.json" },
+        "documents": {
+          "field": "link",
+          "production": "ลิงก์ Google Drive",
+          "devFallback": "static/assets/documents/knowledge/",
+          "uploadFlow": "admin วางลิงก์ Google Drive ในช่องลิงก์เอกสาร — ไม่อัปโหลด PDF บนเว็บ",
+          "code": "src/lib/documentLink.js, src/routes/api/site-data/[key]/+server.js"
+        }
+      }
+    },
+    {
+      "id": "plans",
+      "label": "แผนพัฒนาครู",
+      "publicRoute": "/plan",
+      "adminTab": "plans",
+      "api": { "read": "GET /api/site-data/plans", "write": "POST|PUT|DELETE /api/site-data/plans" },
+      "itemModel": "per-item document (เหมือนข่าว) — fields: id, title, link, sortOrder",
+      "storage": {
+        "production": { "type": "firestore", "collection": "plans" },
+        "devFallback": { "type": "json", "path": "static/assets/data/plans.json" },
+        "documents": {
+          "field": "link",
+          "production": "ลิงก์ Google Drive",
+          "devFallback": "static/assets/documents/plans/",
+          "uploadFlow": "admin วางลิงก์ Google Drive ในช่องลิงก์เอกสาร — ไม่อัปโหลด PDF บนเว็บ",
+          "code": "src/lib/documentLink.js, src/routes/api/site-data/[key]/+server.js"
+        }
+      }
+    },
+    {
+      "id": "forms",
+      "label": "แบบฟอร์ม",
+      "publicRoute": "/forms",
+      "adminTab": "forms",
+      "api": { "read": "GET /api/site-data/forms", "write": "POST|PUT|DELETE /api/site-data/forms" },
+      "itemModel": "per-item document (เหมือนข่าว) — fields: id, title, link, sortOrder",
+      "storage": {
+        "production": { "type": "firestore", "collection": "forms" },
+        "devFallback": { "type": "json", "path": "static/assets/data/forms.json" },
+        "documents": {
+          "field": "link",
+          "production": "ลิงก์ Google Drive",
+          "devFallback": "static/assets/documents/forms/",
+          "uploadFlow": "admin วางลิงก์ Google Drive ในช่องลิงก์เอกสาร — ไม่อัปโหลด PDF บนเว็บ",
+          "code": "src/lib/documentLink.js, src/routes/api/site-data/[key]/+server.js"
+        }
+      }
+    },
+    {
+      "id": "authority",
+      "label": "อำนาจหน้าที่",
+      "publicRoute": "/authority",
+      "adminTab": "authority",
+      "api": { "read": "GET /api/site-data/authority", "write": "POST /api/site-data/authority" },
+      "itemModel": "bulk: site_data document เดียว (array ของ string) — แก้แบบ \"บันทึกทั้งหมด\"",
+      "uploadFlow": "admin แก้รายการข้อความทั้งหมดแล้วกดบันทึก — ไม่มีไฟล์แนบ",
+      "storage": {
+        "production": { "type": "firestore", "collection": "site_data", "documentId": "authority" },
+        "devFallback": { "type": "json", "path": "static/assets/data/authority.json" }
+      }
+    },
+    {
+      "id": "personnel",
+      "label": "บุคลากร",
+      "publicRoute": "/users",
+      "adminTab": "personnel",
+      "api": {
+        "read": "GET /api/site-data/personnel",
+        "write": "POST|PUT|DELETE /api/site-data/personnel"
+      },
+      "itemModel": "per-item document (เหมือนกิจกรรม) — fields: id, name, position, phone, image, sortOrder",
+      "storage": {
+        "production": { "type": "firestore", "collection": "personnel" },
+        "devFallback": { "type": "json", "path": "static/assets/data/personnel.json" },
+        "images": {
+          "production": "Vercel Blob: personnel/{filename}",
+          "devFallback": "static/assets/images/personnel/",
+          "uploadFlow": "admin อัปโหลดรูปใน modal บุคลากร — Vercel Blob บน production",
+          "code": "src/lib/server/contentStore.js → saveImageFile('personnel') (ส่ง imageFile ใน FormData)"
+        }
+      }
+    },
+    {
+      "id": "certificates",
+      "label": "คลังเกียรติบัตร",
+      "publicRoute": "/certificates",
+      "adminTab": "certificates",
+      "api": {
+        "read": "GET /api/certificates/config",
+        "write": "POST /api/certificates/config"
+      },
+      "itemModel": "config เดียว — field sheetUrl ชี้ไป Google Sheets",
+      "uploadFlow": "admin วาง URL ของ Google Sheet — ข้อมูลเกียรติบัตรจริงอยู่ใน Sheet (อ่าน CSV)",
+      "storage": {
+        "production": {
+          "type": "firestore",
+          "collection": "site_data",
+          "documentId": "certificates_config",
+          "field": "sheetUrl"
+        },
+        "devFallback": { "type": "json", "path": "static/assets/data/certificates_config.json" },
+        "external": "Google Sheets CSV (sheetUrl)"
+      }
+    }
+  ],
+  "envVars": [
+    {
+      "name": "ADMIN_PASSWORD",
+      "visibility": "secret",
+      "where": ["Vercel Env", ".env.local"],
+      "required": "production",
+      "description": "รหัสผ่าน admin (username คงที่: admin)"
+    },
+    {
+      "name": "AUTH_SESSION_SECRET",
+      "visibility": "secret",
+      "where": ["Vercel Env", ".env.local"],
+      "required": "production",
+      "description": "คีย์ลงนาม session cookie (สตริงสุ่มยาว 32+ ตัว)"
+    },
+    {
+      "name": "PUBLIC_TURNSTILE_SITE_KEY",
+      "visibility": "public",
+      "where": ["Vercel Env", ".env.local"],
+      "required": "optional",
+      "description": "Cloudflare Turnstile Site Key — ไม่ตั้ง = ข้าม widget"
+    },
+    {
+      "name": "TURNSTILE_SECRET_KEY",
+      "visibility": "secret",
+      "where": ["Vercel Env", ".env.local"],
+      "required": "optional",
+      "description": "Cloudflare Turnstile Secret — คู่กับ Site Key"
+    },
+    {
+      "name": "FIREBASE_SERVICE_ACCOUNT_JSON",
+      "visibility": "secret",
+      "where": ["Vercel Env", ".env.local"],
+      "required": "production",
+      "description": "JSON service account บรรทัดเดียว — เปิด Firestore/Storage บน production"
+    }
+  ],
+  "codeMap": [
+    { "task": "นิยามโดเมน (glossary)", "paths": ["CONTEXT.md"] },
+    { "task": "หน้าแรก", "paths": ["src/routes/+page.svelte"] },
+    { "task": "หน้า admin (CRUD)", "paths": ["src/routes/admin/+page.svelte", "src/routes/admin/+layout.server.js"] },
+    { "task": "Login / logout", "paths": ["src/routes/login/", "src/routes/logout/", "src/lib/server/localAuth.js", "src/lib/server/turnstile.js"] },
+    { "task": "API ข่าว/กิจกรรม", "paths": ["src/routes/api/news/+server.js", "src/routes/api/activities/+server.js"] },
+    { "task": "API รายการเว็บ (manuals, personnel, …)", "paths": ["src/routes/api/site-data/[key]/+server.js"] },
+    { "task": "API เกียรติบัตร", "paths": ["src/routes/api/certificates/config/+server.js", "src/lib/server/certificatesConfig.js"] },
+    { "task": "อัปโหลดรูปบุคลากร", "paths": ["src/routes/api/personnel/upload/+server.js"] },
+    { "task": "อัปโหลดรูปไป Vercel Blob", "paths": ["src/routes/api/upload/blob/+server.js", "src/routes/api/upload/status/+server.js", "src/lib/uploadImage.js", "src/lib/server/blobStorage.js", "src/lib/adminFetch.js"] },
+    { "task": "ลิงก์ PDF ผ่าน Google Drive", "paths": ["src/lib/documentLink.js", "src/routes/api/news/+server.js", "src/routes/api/site-data/[key]/+server.js", "docs/google-drive-workflow.html"] },
+    { "task": "ชั้นข้อมูล (Firestore/JSON/รูป)", "paths": ["src/lib/server/contentStore.js", "src/lib/server/firebaseAdmin.js"] },
+    { "task": "Rate limit + cache headers", "paths": ["src/hooks.server.js", "src/lib/server/rateLimit.js"] },
+    { "task": "สไตล์รวม", "paths": ["src/app.css"] },
+    { "task": "รูป/JSON สำรอง (static)", "paths": ["static/assets/images/", "static/assets/data/"] },
+    { "task": "Deploy / build", "paths": ["vercel.json", "svelte.config.js", "package.json"] },
+    { "task": "Cloudflare setup", "paths": ["docs/cloudflare-setup.html"] }
+  ],
+  "legacyNote": {
+    "warning": "ไฟล์ HTML เก่าใน root repo (index.html, admin.html, news.html ฯลฯ) เป็นสแต็กเก่า — ไม่ใช่เว็บที่รันบน Vercel",
+    "activeApp": "SvelteKit ใน src/ — deploy ผ่าน Vercel จาก branch main"
+  },
+  "deploy": {
+    "hosting": "Vercel project: cntdev",
+    "branch": "main",
+    "workflow": ["git add .", "git commit -m \"...\"", "git push origin main"],
+    "manualDeploy": "vercel --prod (ไม่จำเป็นถ้าเชื่อม GitHub)",
+    "afterEnvChange": "Redeploy บน Vercel หลังเปลี่ยน Environment Variables"
+  }
+}

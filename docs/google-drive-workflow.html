@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>อัปโหลด PDF ผ่าน Google Drive (workflow สำหรับ admin)</title>
+  <link rel="stylesheet" href="./doc.css">
+</head>
+<body>
+  <main class="doc">
+    <h1>อัปโหลด PDF ผ่าน Google Drive (workflow สำหรับ admin)</h1>
+    <p>เว็บ <strong>cntdev.vercel.app</strong> ไม่รับอัปโหลด PDF โดยตรงอีกต่อไป — ใช้ <strong>Google Drive</strong> เป็นที่เก็บไฟล์เดียว แล้ววางลิงก์ใน admin</p>
+    <blockquote>
+    <p>ข้อดี: อัปไฟล์ครั้งเดียว ใช้ลิงก์เดียวกันได้ทั้งบน cntdev และ cnt.go.th</p>
+    </blockquote>
+    <h2>ขั้นตอนสำหรับ admin</h2>
+    <ol>
+    <li>อัป PDF ขึ้น <strong>Google Drive</strong> (โฟลเดอร์ของกลุ่มพัฒนาครูฯ หรือโฟลเดอร์ที่ใช้งานร่วมกัน)</li>
+    <li>คลิกขวาที่ไฟล์ → <strong>แชร์</strong></li>
+    <li>ตั้งสิทธิ์เป็น <strong>ทุกคนที่มีลิงก์</strong> → <strong>ผู้ดู</strong> (หรือเทียบเท่า)</li>
+    <li>คัดลอกลิงก์ (รูปแบบ <code>https://drive.google.com/file/d/FILE_ID/view</code>)</li>
+    <li>เข้า <a href="https://cntdev.vercel.app/admin">/admin</a> → แท็บข่าวหรือเอกสาร → เพิ่ม/แก้รายการ</li>
+    <li>วางลิงก์ในช่อง <strong>ลิงก์เอกสาร (Google Drive)</strong> แล้วบันทึก</li>
+    <li>บน <strong>cnt.go.th</strong> ใช้ลิงก์ Drive <strong>เดียวกัน</strong> (ไม่ต้องอัปซ้ำบน cntdev)</li>
+    </ol>
+    <h2>สิ่งที่ยังอัปโหลดบนเว็บได้</h2>
+    <ul>
+    <li><strong>รูปกิจกรรม</strong> — อัปโหลดใน admin (Vercel Blob) หรือวาง URL รูป</li>
+    <li><strong>รูปบุคลากร</strong> — อัปโหลดใน admin (Vercel Blob) หรือวาง URL รูป</li>
+    </ul>
+    <p>ตั้งค่า Blob สำหรับรูป: <a href="./vercel-blob-setup.html">vercel-blob-setup.html</a></p>
+    <h2>ไฟล์เก่าบน Blob / Firebase Storage</h2>
+    <p>ข่าวหรือเอกสารที่เคยอัปโหลดไฟล์ตรงบนเว็บ — ลิงก์เดิมยังเปิดได้จนกว่าจะแก้รายการเป็นลิงก์ Drive</p>
+    <h2>แก้ปัญหา</h2>
+    <table>
+    <thead>
+    <tr><th>อาการ</th><th>แก้</th></tr>
+    </thead>
+    <tbody>
+    <tr>
+    <td>กด「เปิดอ่าน」แล้วขอสิทธิ์เข้าถึง</td>
+    <td>ตั้งแชร์ Drive เป็น「ทุกคนที่มีลิงก์」ดูได้</td>
+    </tr>
+    <tr>
+    <td>บันทึกไม่ได้ — กรุณาวางลิงก์เอกสาร</td>
+    <td>กรอกลิงก์ในช่องลิงก์เอกสาร (รายการใหม่ต้องมีลิงก์)</td>
+    </tr>
+    <tr>
+    <td>ลิงก์ไม่ใช่ Drive ก็ได้ไหม</td>
+    <td>ได้ — ใส่ URL https ใดก็ได้ที่เปิด PDF ได้ (เช่น cnt.go.th)</td>
+    </tr>
+    </tbody>
+    </table>
+  </main>
+</body>
+</html>
