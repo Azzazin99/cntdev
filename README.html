@@ -1,103 +1,29 @@
-<!DOCTYPE html>
-<html lang="th">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>cntdev — เว็บกลุ่มพัฒนาครูและบุคลากรทางการศึกษา สพป.ชัยนาท</title>
-  <link rel="stylesheet" href="docs/doc.css">
-</head>
-<body>
-  <main class="doc">
-    <h1>cntdev — เว็บกลุ่มพัฒนาครูและบุคลากรทางการศึกษา สพป.ชัยนาท</h1>
-    <p>เว็บไซต์สำนักงานเขตพื้นที่การศึกษาประถมศึกษาชัยนาท สร้างด้วย <strong>SvelteKit</strong> deploy บน <strong>Vercel</strong> ข้อมูล production อยู่ที่ <strong>Firebase Firestore</strong></p>
-    <ul>
-    <li><strong>Production:</strong> <a href="https://cntdev.vercel.app">https://cntdev.vercel.app</a></li>
-    <li><strong>GitHub:</strong> <a href="https://github.com/Azzazin99/cntdev">https://github.com/Azzazin99/cntdev</a></li>
-    </ul>
-    <h2>เอกสาร Tech Stack &amp; Schema</h2>
-    <p>เอกสารเต็ม (แผนที่โค้ด + ข้อมูลเก็บที่ไหน + env vars):</p>
-    <table>
-    <thead>
-    <tr>
-    <th>ไฟล์</th>
-    <th>คำอธิบาย</th>
-    </tr>
-    </thead>
-    <tbody><tr>
-    <td><a href="CONTEXT.md">CONTEXT.md</a></td>
-    <td>นิยามโดเมน — metadata hub, document link, bulk list ฯลฯ</td>
-    </tr>
-    <tr>
-    <td><a href="docs/tech-stack.html">docs/tech-stack.html</a></td>
-    <td>เอกสารอ่านหลัก — ตาราง stack, storage schema, code map</td>
-    </tr>
-    <tr>
-    <td><a href="docs/data-schema.json">docs/data-schema.json</a></td>
-    <td>แหล่งความจริงแบบ JSON (agent อัปเดตเมื่อเปลี่ยนโครงสร้าง)</td>
-    </tr>
-    <tr>
-    <td><a href="docs/cloudflare-setup.html">docs/cloudflare-setup.html</a></td>
-    <td>Cloudflare Turnstile + CDN เมื่อมีโดเมน</td>
-    </tr>
-    <tr>
-    <td><a href="docs/google-drive-workflow.html">docs/google-drive-workflow.html</a></td>
-    <td>PDF ผ่าน Google Drive — วางลิงก์ใน admin</td>
-    </tr>
-    <tr>
-    <td><a href="docs/vercel-blob-setup.html">docs/vercel-blob-setup.html</a></td>
-    <td>ตั้ง Vercel Blob สำหรับอัปโหลดรูปกิจกรรม/บุคลากร</td>
-    </tr>
-    </tbody></table>
-    <p>เปิด <code>docs/tech-stack.html</code> ใน Cursor หรือ GitHub ได้ทันที</p>
-    <h2>พัฒนาในเครื่อง</h2>
-    <pre><code class="language-bash">npm install
-    cp .env.example .env.local   # แล้วใส่ค่าจริง
-    npm run dev
-    </code></pre>
-    <p>ดูรายการ env ที่จำเป็นใน <a href=".env.example">.env.example</a></p>
-    <h2>Deploy</h2>
-    <pre><code class="language-bash">git add .
-    git commit -m &quot;คำอธิบายการเปลี่ยนแปลง&quot;
-    git push origin main
-    </code></pre>
-    <p>Vercel deploy อัตโนมัติจาก branch <code>main</code> — หลังเปลี่ยน Environment Variables ต้อง <strong>Redeploy</strong></p>
-    <h2>โครงสร้างสำคัญ (สรุป)</h2>
-    <table>
-    <thead>
-    <tr>
-    <th>งาน</th>
-    <th>ที่ไปแก้</th>
-    </tr>
-    </thead>
-    <tbody><tr>
-    <td>หน้าเว็บ / เมนู</td>
-    <td><code>src/routes/</code>, <code>src/components/</code></td>
-    </tr>
-    <tr>
-    <td>Admin</td>
-    <td><code>src/routes/admin/+page.svelte</code></td>
-    </tr>
-    <tr>
-    <td>API</td>
-    <td><code>src/routes/api/</code></td>
-    </tr>
-    <tr>
-    <td>ข้อมูล Firestore/JSON</td>
-    <td><code>src/lib/server/contentStore.js</code></td>
-    </tr>
-    <tr>
-    <td>Login / session</td>
-    <td><code>src/routes/login/</code>, <code>src/lib/server/localAuth.js</code></td>
-    </tr>
-    <tr>
-    <td>สไตล์รวม</td>
-    <td><code>src/app.css</code></td>
-    </tr>
-    </tbody></table>
-    <p><strong>หมายเหตุ:</strong> ไฟล์ <code>index.html</code>, <code>admin.html</code> ฯลฯ ใน root เป็นโค้ดเก่า — <strong>ไม่ใช่</strong> แอปที่รันบน Vercel (ใช้ <code>src/</code> แทน)</p>
-    <h2>การอัปเดตเอกสาร</h2>
-    <p>เมื่อเพิ่ม route, API, env, หรือที่เก็บข้อมูล — อัปเดต <code>docs/data-schema.json</code> และ <code>docs/tech-stack.html</code> ด้วย (ดูกฎใน <code>.cursor/rules/tech-docs.mdc</code>)</p>
+# 🚀 cntdev (ระบบสารสนเทศกลุ่มพัฒนาครูและบุคลากรทางการศึกษา)
 
-  </main>
-</body>
-</html>
+เว็บไซต์อย่างเป็นทางการของกลุ่มพัฒนาครูและบุคลากรทางการศึกษา สำนักงานเขตพื้นที่การศึกษาประถมศึกษาชัยนาท (สพป.ชัยนาท) พัฒนาขึ้นเพื่อเป็นศูนย์กลางในการเผยแพร่ข้อมูลข่าวสาร ให้บริการข้อมูลบุคลากร และรวบรวมระบบสารสนเทศที่จำเป็นสำหรับการปฏิบัติงาน
+
+🌐 **Website:** [https://cntdev.vercel.app/](https://cntdev.vercel.app/)
+
+## ✨ ฟีเจอร์หลัก (Features)
+* 📰 **ระบบข่าวสารและกิจกรรม:** อัปเดตข่าวประชาสัมพันธ์ ภาพกิจกรรม และประกาศที่สำคัญของกลุ่มฯ
+* 📚 **คลังความรู้และคู่มือ:** แหล่งรวบรวมและดาวน์โหลดคู่มือการปฏิบัติงาน (เช่น คู่มือ OBEC Award) ระเบียบ และคำสั่งต่างๆ
+* 🏆 **คลังเกียรติบัตรออนไลน์:** ระบบสำหรับสืบค้นและดาวน์โหลดเกียรติบัตร
+* 📝 **ศูนย์รวมแบบฟอร์ม:** ดาวน์โหลดแบบฟอร์มคำร้องและเอกสารที่จำเป็นต่างๆ
+* 👥 **ข้อมูลบุคลากรและโครงสร้าง:** แสดงข้อมูลบุคลากร อำนาจหน้าที่ และช่องทางการติดต่อ
+* 🔐 **ระบบจัดการบุคลากร (HRMS):** รองรับระบบทะเบียนประวัติและการเข้าสู่ระบบสำหรับเจ้าหน้าที่
+
+## 🛠️ เทคโนโลยีที่ใช้ (Tech Stack)
+* **Framework:** Next.js
+* **Deployment:** Vercel
+
+## 💻 การติดตั้งและทดสอบรันในเครื่อง (Getting Started)
+
+### สิ่งที่ต้องมี (Prerequisites)
+* Node.js
+* npm, yarn, pnpm หรือ bun
+
+### วิธีการติดตั้ง (Installation)
+
+1. Clone repository นี้ลงมาที่เครื่องของคุณ
+```bash
+   git clone [https://github.com/Azzazin99/cntdev.git](https://github.com/Azzazin99/cntdev.git)
