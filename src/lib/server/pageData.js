@@ -1,13 +1,7 @@
 import { listItems, getSiteList } from '$lib/server/contentStore';
 import { sanitizeText } from '$lib/sanitizeText';
+import { sortSiteItemsByOrder } from '$lib/sortSiteOrder';
 import { sortByDate } from '$lib/utils';
-
-/** @param {unknown[]} items */
-function sortByOrder(items) {
-	return [...items].sort(
-		(a, b) => (Number(a?.sortOrder) || 0) - (Number(b?.sortOrder) || 0)
-	);
-}
 
 /** @param {string} key @param {unknown[]} items */
 function sanitizeItems(key, items) {
@@ -39,7 +33,7 @@ export async function loadSiteItems(key) {
 	if (!items || items.length === 0) {
 		items = await getSiteList(key);
 	}
-	return sanitizeItems(key, sortByOrder(items));
+	return sanitizeItems(key, sortSiteItemsByOrder(key, items));
 }
 
 export async function loadAuthority() {

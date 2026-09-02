@@ -6,11 +6,11 @@ export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 export const MAX_IMAGE_MB = 5;
 
 /** @typedef {'news' | 'manuals' | 'knowledge' | 'plans' | 'forms'} PdfCollectionName */
-/** @typedef {'news' | 'activities' | 'personnel'} ImageCollectionName */
+/** @typedef {'news' | 'activities' | 'personnel' | 'banner'} ImageCollectionName */
 /** @typedef {'pdf' | 'image'} UploadKind */
 
 export const PDF_COLLECTIONS = new Set(['news', 'manuals', 'knowledge', 'plans', 'forms']);
-export const IMAGE_COLLECTIONS = new Set(['news', 'activities', 'personnel']);
+export const IMAGE_COLLECTIONS = new Set(['news', 'activities', 'personnel', 'banner']);
 
 /** @param {string} collection @param {UploadKind} kind */
 export function assertUploadCollection(collection, kind) {

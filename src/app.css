@@ -340,7 +340,6 @@ textarea {
   transition: color 0.2s var(--ease-out);
 }
 
-.nav-link:hover,
 .nav-link.active {
   color: var(--primary-purple);
 }
@@ -358,9 +357,15 @@ textarea {
   transition: transform 0.2s var(--ease-out);
 }
 
-.nav-link:hover::after,
+/* Underline follows the current page only — never :hover (sticky hover leaves a false "active" line) */
 .nav-link.active::after {
   transform: scaleX(1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .nav-link:hover {
+    color: var(--primary-purple);
+  }
 }
 
 @media (min-width: 769px) and (max-width: 1100px) {
@@ -391,6 +396,45 @@ textarea {
   display: grid;
   grid-template-columns: 1fr 320px;
   gap: 2rem;
+}
+
+/* Homepage layout
+   - Top: activities + sidebar (2 columns)
+   - Stack: news / promo / OBEC full width under the top row
+   Both blocks share the same max width and sit centered in .container */
+.home-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2.5rem;
+}
+
+.home-layout__top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 2rem;
+  width: 100%;
+  max-width: 1080px;
+  margin-inline: auto;
+  align-items: start;
+}
+
+.home-layout__main {
+  min-width: 0;
+}
+
+.home-layout__stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+  width: 100%;
+  max-width: 1080px;
+  margin-inline: auto;
+}
+
+.home-layout__stack .section-title {
+  justify-content: center;
+  text-align: center;
 }
 
 /* ==================== MAIN CONTENT ==================== */
@@ -836,13 +880,14 @@ body.dark-mode .activity-card:hover {
 
 /* ==================== RESPONSIVE ==================== */
 @media (max-width: 768px) {
-  .grid-layout {
+  .grid-layout,
+  .home-layout__top {
     grid-template-columns: 1fr;
   }
 
-  .sidebar {
+  .home-layout__top .sidebar {
     order: 1;
-    margin-top: 2rem;
+    margin-top: 0;
   }
 
   .banner-img {

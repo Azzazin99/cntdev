@@ -16,8 +16,7 @@
 		{ text: 'แผนพัฒนาครู', link: '/plan' },
 		{ text: 'ข่าวประชาสัมพันธ์', link: '/news' },
 		{ text: 'ภาพกิจกรรม', link: '/activities' },
-		{ text: 'แบบฟอร์ม', link: '/forms' },
-		{ text: 'คลังเกียรติบัตร', link: '/certificates' }
+		{ text: 'แบบฟอร์ม', link: '/forms' }
 	];
 
 	$: userEmail = data?.user?.email || '';
@@ -28,7 +27,7 @@
 		...baseNavItems,
 		...(canAccessAdmin ? [{ text: 'จัดการระบบ', link: '/admin' }] : []),
 		...(!userRole
-			? [{ text: 'เข้าสู่ระบบ', link: '/login' }]
+			? [{ text: 'จัดการระบบ', link: '/login' }]
 			: onAdminPage
 				? []
 				: [{ text: 'ออกจากระบบ', link: '/logout' }])
@@ -39,7 +38,7 @@
 
 <div class="site-wrapper">
 	<a href="#main-content" class="skip-link">ข้ามไปเนื้อหาหลัก</a>
-	<Header {navItems} {toggleTheme} currentTheme={$currentTheme} />
+	<Header banner={data.banner} {navItems} {toggleTheme} currentTheme={$currentTheme} />
 	
 	<main id="main-content">
 		<slot />

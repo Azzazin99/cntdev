@@ -5,7 +5,7 @@
     "productionUrl": "https://cntdev.vercel.app",
     "repo": "https://github.com/Azzazin99/cntdev",
     "firebaseProject": "cntdev-e49f5",
-    "lastUpdated": "2026-06-16"
+    "lastUpdated": "2026-07-15"
   },
   "stack": [
     { "layer": "UI", "technology": "Svelte 5 + SvelteKit 2", "notes": "หน้าเว็บและ routing ใน src/routes/" },
@@ -25,7 +25,8 @@
       "adminTab": "news",
       "api": {
         "read": "GET /api/news",
-        "write": "POST|PUT|DELETE /api/news"
+        "write": "POST|PUT|DELETE /api/news",
+        "reorder": "POST /api/news/reorder { orderedIds } — admin ลาก ☰ แล้วบันทึกทันที"
       },
       "storage": {
         "production": { "type": "firestore", "collection": "news" },
@@ -56,7 +57,8 @@
       "adminTab": "activity",
       "api": {
         "read": "GET /api/activities",
-        "write": "POST|PUT|DELETE /api/activities"
+        "write": "POST|PUT|DELETE /api/activities",
+        "reorder": "POST /api/activities/reorder { orderedIds } — admin ลาก ☰ แล้วบันทึกทันที"
       },
       "storage": {
         "production": { "type": "firestore", "collection": "activities" },
@@ -74,8 +76,12 @@
       "label": "คู่มือการปฏิบัติงาน",
       "publicRoute": "/manual",
       "adminTab": "manuals",
-      "api": { "read": "GET /api/site-data/manuals", "write": "POST|PUT|DELETE /api/site-data/manuals" },
-      "itemModel": "per-item document (เหมือนข่าว) — fields: id, title, link, sortOrder",
+      "api": {
+        "read": "GET /api/site-data/manuals",
+        "write": "POST|PUT|DELETE /api/site-data/manuals",
+        "reorder": "POST /api/site-data/manuals/reorder { orderedIds }"
+      },
+      "itemModel": "per-item document — fields: id, title, link, sortOrder (ค่ามาก = แสดงก่อน; รายการใหม่ใช้ Date.now())",
       "storage": {
         "production": { "type": "firestore", "collection": "manuals" },
         "devFallback": { "type": "json", "path": "static/assets/data/manuals.json" },
@@ -93,8 +99,12 @@
       "label": "คลังความรู้",
       "publicRoute": "/knowledge",
       "adminTab": "knowledge",
-      "api": { "read": "GET /api/site-data/knowledge", "write": "POST|PUT|DELETE /api/site-data/knowledge" },
-      "itemModel": "per-item document (เหมือนข่าว) — fields: id, title, link, sortOrder",
+      "api": {
+        "read": "GET /api/site-data/knowledge",
+        "write": "POST|PUT|DELETE /api/site-data/knowledge",
+        "reorder": "POST /api/site-data/knowledge/reorder { orderedIds }"
+      },
+      "itemModel": "per-item document — fields: id, title, link, sortOrder (ค่ามาก = แสดงก่อน; รายการใหม่ใช้ Date.now())",
       "storage": {
         "production": { "type": "firestore", "collection": "knowledge" },
         "devFallback": { "type": "json", "path": "static/assets/data/knowledge.json" },
@@ -112,8 +122,12 @@
       "label": "แผนพัฒนาครู",
       "publicRoute": "/plan",
       "adminTab": "plans",
-      "api": { "read": "GET /api/site-data/plans", "write": "POST|PUT|DELETE /api/site-data/plans" },
-      "itemModel": "per-item document (เหมือนข่าว) — fields: id, title, link, sortOrder",
+      "api": {
+        "read": "GET /api/site-data/plans",
+        "write": "POST|PUT|DELETE /api/site-data/plans",
+        "reorder": "POST /api/site-data/plans/reorder { orderedIds }"
+      },
+      "itemModel": "per-item document — fields: id, title, link, sortOrder (ค่ามาก = แสดงก่อน; รายการใหม่ใช้ Date.now())",
       "storage": {
         "production": { "type": "firestore", "collection": "plans" },
         "devFallback": { "type": "json", "path": "static/assets/data/plans.json" },
@@ -131,8 +145,12 @@
       "label": "แบบฟอร์ม",
       "publicRoute": "/forms",
       "adminTab": "forms",
-      "api": { "read": "GET /api/site-data/forms", "write": "POST|PUT|DELETE /api/site-data/forms" },
-      "itemModel": "per-item document (เหมือนข่าว) — fields: id, title, link, sortOrder",
+      "api": {
+        "read": "GET /api/site-data/forms",
+        "write": "POST|PUT|DELETE /api/site-data/forms",
+        "reorder": "POST /api/site-data/forms/reorder { orderedIds }"
+      },
+      "itemModel": "per-item document — fields: id, title, link, sortOrder (ค่ามาก = แสดงก่อน; รายการใหม่ใช้ Date.now())",
       "storage": {
         "production": { "type": "firestore", "collection": "forms" },
         "devFallback": { "type": "json", "path": "static/assets/data/forms.json" },
@@ -151,8 +169,8 @@
       "publicRoute": "/authority",
       "adminTab": "authority",
       "api": { "read": "GET /api/site-data/authority", "write": "POST /api/site-data/authority" },
-      "itemModel": "bulk: site_data document เดียว (array ของ string) — แก้แบบ \"บันทึกทั้งหมด\"",
-      "uploadFlow": "admin แก้รายการข้อความทั้งหมดแล้วกดบันทึก — ไม่มีไฟล์แนบ",
+      "itemModel": "bulk: site_data document เดียว (array ของ string) — แก้ข้อความกดบันทึกทั้งหมด; ลาก ☰ บันทึกลำดับทันที",
+      "uploadFlow": "admin แก้รายการข้อความแล้วกดบันทึกทั้งหมด; ลากจัดลำดับแล้วเซฟอัตโนมัติ — ไม่มีไฟล์แนบ",
       "storage": {
         "production": { "type": "firestore", "collection": "site_data", "documentId": "authority" },
         "devFallback": { "type": "json", "path": "static/assets/data/authority.json" }
@@ -165,9 +183,10 @@
       "adminTab": "personnel",
       "api": {
         "read": "GET /api/site-data/personnel",
-        "write": "POST|PUT|DELETE /api/site-data/personnel"
+        "write": "POST|PUT|DELETE /api/site-data/personnel",
+        "reorder": "POST /api/site-data/personnel/reorder { orderedIds } — ลาก ☰ แล้วบันทึกทันที"
       },
-      "itemModel": "per-item document (เหมือนกิจกรรม) — fields: id, name, position, phone, image, sortOrder",
+      "itemModel": "per-item document — fields: id, name, position, phone, image, sortOrder (ค่ามาก = แสดงก่อน)",
       "storage": {
         "production": { "type": "firestore", "collection": "personnel" },
         "devFallback": { "type": "json", "path": "static/assets/data/personnel.json" },
@@ -199,6 +218,32 @@
         },
         "devFallback": { "type": "json", "path": "static/assets/data/certificates_config.json" },
         "external": "Google Sheets CSV (sheetUrl)"
+      }
+    },
+    {
+      "id": "banner",
+      "label": "แบนเนอร์เว็บไซต์",
+      "publicRoute": "ทุกหน้า (Header)",
+      "adminTab": "banner",
+      "api": {
+        "read": "GET /api/banner/config",
+        "write": "POST /api/banner/config (multipart)"
+      },
+      "itemModel": "config เดียว — fields: imageUrl, linkUrl, altText; รูp static 6063×1250 มีบุคลากร 3 ท่านในไฟล์เดียว",
+      "uploadFlow": "admin อัปโหลดรูp (สูงสุด 5 MB) + ตั้งลิงก์/alt — หรือ dev: node scripts/composite-banner.mjs แล้ว commit static/assets/images/banner.png",
+      "storage": {
+        "production": {
+          "type": "firestore",
+          "collection": "site_data",
+          "documentId": "banner_config",
+          "fields": ["imageUrl", "linkUrl", "altText"]
+        },
+        "devFallback": { "type": "json", "path": "static/assets/data/banner_config.json" },
+        "images": {
+          "production": "Vercel Blob: banner/{filename}",
+          "devFallback": "static/assets/images/banner.{ext}",
+          "code": "src/lib/server/bannerConfig.js, src/routes/api/banner/config/+server.js, src/components/Header.svelte"
+        }
       }
     }
   ],
@@ -243,10 +288,11 @@
     { "task": "นิยามโดเมน (glossary)", "paths": ["CONTEXT.md"] },
     { "task": "หน้าแรก", "paths": ["src/routes/+page.svelte"] },
     { "task": "หน้า admin (CRUD)", "paths": ["src/routes/admin/+page.svelte", "src/routes/admin/+layout.server.js"] },
-    { "task": "Login / logout", "paths": ["src/routes/login/", "src/routes/logout/", "src/lib/server/localAuth.js", "src/lib/server/turnstile.js"] },
+    { "task": "Login / logout", "paths": ["src/routes/login/", "src/routes/logout/", "src/lib/server/localAuth.js", "src/lib/server/sessionCookie.js", "src/lib/server/turnstile.js", "src/components/Header.svelte"] },
     { "task": "API ข่าว/กิจกรรม", "paths": ["src/routes/api/news/+server.js", "src/routes/api/activities/+server.js"] },
     { "task": "API รายการเว็บ (manuals, personnel, …)", "paths": ["src/routes/api/site-data/[key]/+server.js"] },
     { "task": "API เกียรติบัตร", "paths": ["src/routes/api/certificates/config/+server.js", "src/lib/server/certificatesConfig.js"] },
+    { "task": "API แบนเนอร์ header", "paths": ["src/routes/api/banner/config/+server.js", "src/lib/server/bannerConfig.js", "src/components/Header.svelte", "scripts/composite-banner.mjs"] },
     { "task": "อัปโหลดรูปบุคลากร", "paths": ["src/routes/api/personnel/upload/+server.js"] },
     { "task": "อัปโหลดรูปไป Vercel Blob", "paths": ["src/routes/api/upload/blob/+server.js", "src/routes/api/upload/status/+server.js", "src/lib/uploadImage.js", "src/lib/server/blobStorage.js", "src/lib/adminFetch.js"] },
     { "task": "ลิงก์ PDF ผ่าน Google Drive", "paths": ["src/lib/documentLink.js", "src/routes/api/news/+server.js", "src/routes/api/site-data/[key]/+server.js", "docs/google-drive-workflow.html"] },

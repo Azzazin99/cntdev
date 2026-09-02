@@ -37,12 +37,34 @@ _Avoid_: database, file storage (เมื่อพูดถึง metadata)
 _Avoid_: document link (เมื่อหมายถึงกระบวนการอัปโหลด)
 
 **Image asset**:
-ไฟล์รูปที่อัปผ่าน admin สำหรับกิจกรรมหรือบุคลากร — เก็บบน Vercel Blob บน production
+ไฟล์รูปที่อัปผ่าน admin สำหรับกิจกรรมหรือบุคลากร — เก็บบน Vercel Blob บน production; หน้า `/users` แสดงรูปตามสัดส่วนไฟล์จริง (ไม่ crop) จำกัดด้วยความกว้างการ์ด
 _Avoid_: document, PDF, Drive link
 
 **Certificate sheet**:
 Google Sheets ที่หน้าคลังเกียรติบัตรอ่านเป็น CSV — admin เก็บเฉพาะ `sheetUrl` ใน metadata; ข้อมูลเกียรติบัตรจริงอยู่ใน Sheet
 _Avoid_: Firestore records, certificate database
+
+**Site banner**:
+รูปแบนเนอร์ static ด้านบนทุกหน้า (header) — อัปโหลดภาพยาวทั้งแผ่น (6063×1250 แนะนำ) มีบุคลากร 3 ท่าน + nameplate ในไฟล์เดียว; admin ตั้งลิงก์/alt; metadata ที่ `banner_config`; รูpที่ Vercel Blob หรือ `static/assets/images/` — ไม่ผูก personnel API
+_Avoid_: dynamic HTML banner, carousel, AI-generated portrait
+
+### การเข้าสู่ระบบ
+
+**Session cookie**:
+คุกกี้ `cntdev_session` ที่พิสูจน์ว่าเข้าสู่ระบบแล้ว — สร้างตอน login ลบตอน logout; ตัวเลือก path/sameSite/secure ตอน set กับ delete ต้องตรงกัน
+_Avoid_: Firebase Auth ของ `src/lib/auth.js` (legacy ไม่ใช้กับ admin)
+
+**Auth nav**:
+เมนูจัดการระบบ / ออกจากระบบ บน navbar ตาม `data.user` จาก root layout — ยังไม่ login แสดง "จัดการระบบ" ไป `/login`; login แล้วแสดง "จัดการระบบ" ไป `/admin`; หลัง logout ต้องโหลดหน้าเต็ม (`data-sveltekit-reload`) เพื่อให้ layout อ่าน session ใหม่ ไม่งั้นเมนูออกจากระบบค้าง
+_Avoid_: สถานะ login ฝั่ง client store
+
+**Admin tab bar**:
+แถบแท็บในหน้า `/admin` — ลำดับตามเนื้อหาสาธารณะ (บุคลากร → อำนาจหน้าที่ → คู่มือ → แผน → ข่าว → กิจกรรม → แบบฟอร์ม → เกียรติบัตร) จากนั้นคลังความรู้ แล้วปิดท้ายด้วยแบนเนอร์; เปิดหน้าครั้งแรกที่แท็บบุคลากร — คลังเกียรติบัตรไม่อยู่ใน navbar สาธารณะ (เข้าจากการ์ดหน้าแรก / `/certificates`) แต่ยังมีแท็บใน admin
+_Avoid_: ลำดับแท็บแยกจากลำดับเนื้อหาสาธารณะโดยไม่มีเหตุผล
+
+**Home layout**:
+โครงหน้าแรก — แถวบนเป็นภาพกิจกรรม + sidebar (2 คอลัมน์ รวมการ์ดคลังเกียรติบัตร); แถวล่างเต็มความกว้างกึ่งกลาง: ข่าว → แบนเนอร์ cntpa → คู่มือ OBEC → รายการแบบฟอร์มจาก ContentStore (`forms`) พร้อมเปิดอ่าน/ดาวน์โหลด
+_Avoid_: ปุ่ม “แบบฟอร์ม” เปล่าใต้ OBEC โดยไม่มีรายการ; ใส่คลังเกียรติบัตรกลับเข้า navbar ทั้งที่มีการ์ดหน้าแรกแล้ว; ยัดข่าวและส่วนล่างไว้ในคอลัมน์ซ้ายข้าง sidebar
 
 ### คำที่มักสับสน
 

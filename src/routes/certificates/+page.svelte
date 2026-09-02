@@ -41,22 +41,54 @@
 		error = null;
 		
 		try {
-			const res = await fetch(sheetUrl);
-			if (res.ok) {
-				const text = await res.text();
-				certificates = parseCSV(text);
-				
-				// Extract filter options
-				years = [...new Set(certificates.map(c => c.year).filter(y => y))].sort().reverse();
-				courses = [...new Set(certificates.map(c => c.course).filter(c => c && c.trim() !== '-'))].sort();
-				types = [...new Set(certificates.map(c => c.type).filter(t => t && t.trim() !== '' && t.trim() !== '-'))].sort();
-				
-				filteredCertificates = certificates;
+			const isGas = sheetUrl.includes('script.google.com');
+			if (isGas) {
+				const fetchUrl = sheetUrl + (sheetUrl.includes('?') ? '&' : '?') + 't=' + Date.now();
+				const res = await fetch(fetchUrl);
+				if (res.ok) {
+					const json = await res.json();
+					if (json && json.status === 'success' && Array.isArray(json.data)) {
+						certificates = json.data;
+					} else {
+						throw new Error(json.message || 'ข้อมูลจาก Google Apps Script ไม่ถูกต้อง');
+					}
+				} else {
+					throw new Error('HTTP ' + res.status);
+				}
 			} else {
-				error = 'ไม่สามารถโหลดข้อมูลได้';
+				const url = sheetUrl + (sheetUrl.includes('?') ? '&' : '?') + '_t=' + Date.now();
+				const res = await fetch(url);
+				if (res.ok) {
+					const text = await res.text();
+					certificates = parseCSV(text);
+				} else {
+					throw new Error('ไม่สามารถดาวน์โหลดไฟล์ CSV ได้');
+				}
 			}
+
+			// Extract filter options
+			years = [...new Set(certificates.map(c => c.year).filter(y => y))].sort().reverse();
+			courses = [...new Set(certificates.map(c => c.course).filter(c => c && c.trim() !== '-'))].sort();
+			types = [...new Set(certificates.map(c => c.type).filter(t => t && t.trim() !== '' && t.trim() !== '-'))].sort();
+			
+			filteredCertificates = certificates;
 		} catch (e) {
-			error = 'เกิดข้อผิดพลาด: ' + e.message;
+			console.warn('Primary fetch failed, falling back to CSV default URL:', e);
+			try {
+				const fallbackRes = await fetch(FALLBACK_SHEET_URL + '&_t=' + Date.now());
+				if (fallbackRes.ok) {
+					const text = await fallbackRes.text();
+					certificates = parseCSV(text);
+					years = [...new Set(certificates.map(c => c.year).filter(y => y))].sort().reverse();
+					courses = [...new Set(certificates.map(c => c.course).filter(c => c && c.trim() !== '-'))].sort();
+					types = [...new Set(certificates.map(c => c.type).filter(t => t && t.trim() !== '' && t.trim() !== '-'))].sort();
+					filteredCertificates = certificates;
+				} else {
+					error = 'ไม่สามารถโหลดข้อมูลได้: ' + e.message;
+				}
+			} catch (err) {
+				error = 'เกิดข้อผิดพลาด: ' + e.message;
+			}
 		} finally {
 			loading = false;
 		}
@@ -214,7 +246,7 @@
 						</div>
 						
 						<div class="search-field flex-1">
-							<select class="search-input" bind:value={filterYear}>
+							<select class="search-input search-select" bind:value={filterYear}>
 								<option value="">📅 ปีทั้งหมด</option>
 								{#each years as year}
 									<option value={year}>{year}</option>
@@ -223,7 +255,7 @@
 						</div>
 						
 						<div class="search-field flex-1">
-							<select class="search-input" bind:value={filterCourse}>
+							<select class="search-input search-select" bind:value={filterCourse}>
 								<option value="">📘 อบรมพัฒนา/รางวัล</option>
 								{#each courses as course}
 									<option value={course}>{course}</option>
@@ -232,7 +264,7 @@
 						</div>
 						
 						<div class="search-field flex-1">
-							<select class="search-input" bind:value={filterType}>
+							<select class="search-input search-select" bind:value={filterType}>
 								<option value="">🎓 ประเภททั้งหมด</option>
 								{#each types as type}
 									<option value={type}>{type}</option>
@@ -307,8 +339,20 @@
 							<div class="pagination-controls">
 								<button 
 									class="page-btn nav-btn" 
+									on:click={() => goToPage(1)}
+									disabled={currentPage === 1}
+									title="หน้าแรก"
+									aria-label="หน้าแรก"
+								>
+									&laquo; หน้าแรก
+								</button>
+
+								<button 
+									class="page-btn nav-btn" 
 									on:click={() => goToPage(currentPage - 1)}
 									disabled={currentPage === 1}
+									title="หน้าก่อนหน้า"
+									aria-label="หน้าก่อนหน้า"
 								>
 									&lt;
 								</button>
@@ -319,6 +363,7 @@
 										<button 
 											class="page-btn {currentPage === page ? 'active' : ''}"
 											on:click={() => goToPage(page)}
+											aria-current={currentPage === page ? 'page' : undefined}
 										>
 											{page}
 										</button>
@@ -329,8 +374,20 @@
 									class="page-btn nav-btn" 
 									on:click={() => goToPage(currentPage + 1)}
 									disabled={currentPage === totalPages}
+									title="หน้าถัดไป"
+									aria-label="หน้าถัดไป"
 								>
 									&gt;
+								</button>
+
+								<button 
+									class="page-btn nav-btn" 
+									on:click={() => goToPage(totalPages)}
+									disabled={currentPage === totalPages}
+									title="หน้าสุดท้าย"
+									aria-label="หน้าสุดท้าย"
+								>
+									หน้าสุดท้าย &raquo;
 								</button>
 							</div>
 						</div>
@@ -491,6 +548,14 @@
 	.search-input:focus-visible {
 		border-color: var(--primary-purple);
 		box-shadow: 0 0 0 3px var(--color-info-bg);
+	}
+
+	.search-select {
+		font-size: var(--text-sm);
+		padding: 0.6rem 2rem 0.6rem 1rem;
+		padding-left: 1rem;
+		line-height: 1.3;
+		min-height: var(--tap-size);
 	}
 
 	.cert-table-container {

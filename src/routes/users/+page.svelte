@@ -1,5 +1,9 @@
 <script>
 	import { navigating } from '$app/stores';
+	import {
+		PERSONNEL_IMAGE_FALLBACK,
+		resolvePersonnelImageSrc
+	} from '$lib/personnelImage';
 
 	/** @type {import('./$types').PageData} */
 	export let data;
@@ -7,13 +11,12 @@
 	$: personnel = data.personnel;
 	$: busy = !!$navigating;
 
-	function convertDriveLink(url) {
-		if (!url) return '#';
-		const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-		if (match && match[1]) {
-			return `https://drive.google.com/uc?export=download&id=${match[1]}`;
+	/** @param {Event} e */
+	function handleImgError(e) {
+		const img = /** @type {HTMLImageElement | null} */ (e.currentTarget);
+		if (img && img.src !== PERSONNEL_IMAGE_FALLBACK) {
+			img.src = PERSONNEL_IMAGE_FALLBACK;
 		}
-		return url;
 	}
 </script>
 
@@ -23,24 +26,29 @@
 
 <div class="container" aria-busy={busy ? 'true' : undefined}>
 	<h1 class="page-title page-title--with-icon">👥 บุคลากร</h1>
-	
+
 	{#if busy}
 		<p aria-live="polite">กำลังโหลด...</p>
 	{:else if personnel.length > 0}
-		<div class="org-chart-container">
+		<div class="personnel-list">
 			{#each personnel as person}
-				<div class="org-connector">
-					<div class="org-card">
-						<div class="org-img-wrapper">
-							<img src={convertDriveLink(person.image)} alt={person.name || 'รูปบุคลากร'} class="org-img" loading="lazy" decoding="async">
-						</div>
-						<div class="org-info">
-							<h3 class="org-name">{person.name}</h3>
-							<div class="org-position">{person.position}</div>
-							<div class="org-phone">📞 {person.phone}</div>
-						</div>
+				<article class="personnel-card">
+					<div class="personnel-photo">
+						<img
+							src={resolvePersonnelImageSrc(person.image)}
+							alt={person.name || 'รูปบุคลากร'}
+							class="personnel-photo__img"
+							loading="lazy"
+							decoding="async"
+							on:error={handleImgError}
+						/>
 					</div>
-				</div>
+					<div class="personnel-info">
+						<h2 class="personnel-name">{person.name}</h2>
+						<p class="personnel-position">{person.position}</p>
+						<p class="personnel-phone">📞 {person.phone}</p>
+					</div>
+				</article>
 			{/each}
 		</div>
 	{:else}
@@ -49,69 +57,75 @@
 </div>
 
 <style>
-	.org-chart-container {
+	.personnel-list {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		gap: 2rem;
 	}
-	
-	.org-connector {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-	}
-	
-	.org-card {
+
+	.personnel-card {
 		width: 100%;
-		max-width: 320px;
-		border-top: none !important;
-	}
-	
-	.org-img-wrapper {
-		width: 100%;
-		height: 400px;
-		margin: 0;
-		border-radius: 0;
+		max-width: 400px;
+		background: var(--white);
+		border-radius: 12px;
 		overflow: hidden;
-		border: none;
+		box-shadow: 0 1px 3px var(--shadow);
+		border: 1px solid var(--border-subtle);
+		text-align: center;
+		transition:
+			box-shadow 0.2s var(--ease-out),
+			border-color 0.2s var(--ease-out);
 	}
-	
-	.org-img {
+
+	.personnel-card:hover {
+		box-shadow: 0 3px 10px var(--shadow);
+		border-color: var(--border-hover);
+	}
+
+	.personnel-photo {
 		width: 100%;
-		height: 100%;
-		object-fit: cover;
+		background: var(--bg-gray);
 	}
-	
-	.org-info {
+
+	.personnel-photo__img {
+		width: 100%;
+		height: auto;
+		display: block;
+		vertical-align: top;
+	}
+
+	.personnel-info {
 		padding: 1.2rem 1rem 1.5rem;
 	}
-	
-	.org-name {
+
+	.personnel-name {
 		font-size: clamp(1rem, 4vw, 1.25rem);
 		font-weight: 700;
 		color: var(--primary-purple);
 		margin-bottom: 0.25rem;
+		text-wrap: balance;
 	}
-	
-	.org-position {
+
+	.personnel-position {
 		font-size: clamp(0.85rem, 3.5vw, 1rem);
 		color: var(--text-gray);
 		margin-bottom: 1rem;
 		font-weight: 500;
 		line-height: 1.4;
+		text-wrap: pretty;
 	}
-	
-	.org-phone {
+
+	.personnel-phone {
 		font-size: 0.9rem;
 		background: var(--bg-gray);
 		padding: 0.6rem 1rem;
 		border-radius: 6px;
-		display: inline-block;
 		color: var(--text-dark);
 		min-height: 44px;
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
+		margin: 0;
 	}
 </style>

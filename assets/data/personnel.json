@@ -1,16 +1,26 @@
 [
     {
-        "id": 1,
+        "id": "1",
         "name": "นายอนุพงษ์ คล้องการ",
         "position": "รองผู้อำนวยการสำนักงานเขตพื้นที่การศึกษาประถมศึกษาชัยนาท",
         "phone": "0-5641-1639",
-        "image": "assets/images/anupong.jpg"
+        "image": "assets/images/personnel/1782458086942_glfsco.jpg",
+        "sortOrder": 3
     },
     {
-        "id": 2,
+        "id": "2",
         "name": "นางเจฎษรา ปานพรหม",
         "position": "ผู้อำนวยการกลุ่มพัฒนาครูและบุคลากรทางการศึกษา",
         "phone": "0-5641-1639 ต่อ 11",
-        "image": "assets/images/jesara.jpg"
+        "image": "assets/images/personnel/1782458103908_icj33y.jpg",
+        "sortOrder": 2
+    },
+    {
+        "name": "นางสาวรุ่งรัตน์ พานพรม",
+        "position": "นักทรัพยากรบุคคลปฏิบัติการ",
+        "phone": "0-5641-1639 ต่อ 11",
+        "image": "assets/images/personnel/1782458211496_xhvj1d.jpg",
+        "sortOrder": 1,
+        "id": "1782458211505"
     }
 ]

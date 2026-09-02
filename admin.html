@@ -442,7 +442,64 @@
             <button class="tab-btn" data-tab="plans" onclick="switchTab('plans')">📈 แผนพัฒนาครู</button>
             <button class="tab-btn" data-tab="forms" onclick="switchTab('forms')">📝 แบบฟอร์ม</button>
             <button class="tab-btn" data-tab="personnel" onclick="switchTab('personnel')">👥 บุคลากร</button>
+            <button class="tab-btn" data-tab="certificates" onclick="switchTab('certificates')">📜 เกียรติบัตร</button>
 
+        </div>
+
+        <!-- ==================== TAB: CERTIFICATES ==================== -->
+        <div id="tab-certificates" class="tab-content">
+            <div class="toolbar" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between;">
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                    <button class="btn-primary" onclick="openCertModal()">+ เพิ่มเกียรติบัตร</button>
+                    <button class="btn-secondary" onclick="loadCertificatesData(true)">🔄 รีเฟรชข้อมูลสด</button>
+                    <button class="btn-success" onclick="document.getElementById('cert-csv-file-input').click()">📄 นำเข้า CSV หลายรายการ</button>
+                    <input type="file" id="cert-csv-file-input" accept=".csv" style="display: none;" onchange="handleCertCSVUpload(this)">
+                </div>
+                <div class="status-indicator">
+                    สถานะ: <span id="cert-status-text">พร้อมใช้งาน</span>
+                </div>
+            </div>
+
+            <!-- Configuration Box for Apps Script URL -->
+            <div style="background: var(--bg-card); padding: 12px 16px; border-radius: 8px; margin-bottom: 15px; border: 1px dashed var(--border-color); display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <span style="font-size: 0.9rem; font-weight: 600;">🔗 Google Apps Script Web App URL:</span>
+                <input type="text" id="gas-api-url" placeholder="https://script.google.com/macros/s/.../exec" style="flex: 1; min-width: 250px; padding: 6px 10px; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.9rem;">
+                <button class="btn-secondary" style="padding: 6px 12px; font-size: 0.85rem;" onclick="saveGasUrl()">💾 บันทึก URL</button>
+            </div>
+
+            <!-- Filters & Search -->
+            <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                <input type="text" id="cert-admin-search" placeholder="🔍 ค้นหาชื่อ หรือ หลักสูตร..." oninput="filterCertAdminTable()" style="flex: 1; min-width: 200px; padding: 8px 12px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-main);">
+                <select id="cert-admin-filter-year" onchange="filterCertAdminTable()" style="padding: 8px 12px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-main);">
+                    <option value="">ปีทั้งหมด</option>
+                </select>
+                <select id="cert-admin-filter-course" onchange="filterCertAdminTable()" style="padding: 8px 12px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-input); color: var(--text-main);">
+                    <option value="">หลักสูตรทั้งหมด</option>
+                </select>
+            </div>
+
+            <!-- Certificates Table -->
+            <div style="background: var(--bg-card); border-radius: 8px; overflow-x: auto; box-shadow: var(--shadow-card); border: 1px solid var(--border-color);">
+                <table style="width: 100%; border-collapse: collapse; text-align: left;" id="cert-admin-table">
+                    <thead>
+                        <tr style="background: rgba(156, 39, 176, 0.1); border-bottom: 2px solid var(--border-color);">
+                            <th style="padding: 12px 16px;">ลำดับ</th>
+                            <th style="padding: 12px 16px;">ชื่อ-สกุล</th>
+                            <th style="padding: 12px 16px;">หลักสูตร</th>
+                            <th style="padding: 12px 16px;">ปี พ.ศ.</th>
+                            <th style="padding: 12px 16px;">ประเภท</th>
+                            <th style="padding: 12px 16px;">ลิงก์เอกสาร</th>
+                            <th style="padding: 12px 16px; text-align: center;">จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cert-admin-tbody">
+                        <tr><td colspan="7" style="text-align: center; padding: 20px; color: var(--text-muted);">กำลังโหลดข้อมูล...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div style="margin-top: 10px; font-size: 0.9rem; color: var(--text-muted); text-align: right;" id="cert-count-text">
+                ทั้งหมด 0 รายการ
+            </div>
         </div>
 
         <!-- ==================== TAB: NEWS (PR News) ==================== -->
@@ -568,6 +625,53 @@
         </div>
     </div>
 
+    <!-- Modal for Certificates -->
+    <div class="modal-overlay" id="cert-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="cert-modal-title">📜 เพิ่มเกียรติบัตร</h2>
+                <button class="close-btn" onclick="closeCertModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="cert-row-index">
+
+                <div class="form-group">
+                    <label>ชื่อ-สกุล (เช่น นายสมชาย ใจดี) <span style="color:red;">*</span></label>
+                    <input type="text" id="cert-form-name" placeholder="ระบุชื่อ-นามสกุล">
+                </div>
+
+                <div class="form-group">
+                    <label>หลักสูตร / โครงการ <span style="color:red;">*</span></label>
+                    <input type="text" id="cert-form-course" list="cert-form-course-list" placeholder="เลือกหรือพิมพ์หลักสูตรใหม่...">
+                    <datalist id="cert-form-course-list"></datalist>
+                </div>
+
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <div class="form-group" style="flex: 1; min-width: 120px;">
+                        <label>ปี พ.ศ.</label>
+                        <input type="text" id="cert-form-year" list="cert-form-year-list" placeholder="เลือกหรือพิมพ์ปี เช่น 2569">
+                        <datalist id="cert-form-year-list"></datalist>
+                    </div>
+                    <div class="form-group" style="flex: 1; min-width: 120px;">
+                        <label>ประเภท</label>
+                        <input type="text" id="cert-form-type" list="cert-form-type-list" placeholder="เลือกหรือพิมพ์ประเภท เช่น ผู้ผ่านการอบรม">
+                        <datalist id="cert-form-type-list"></datalist>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>ลิงก์ไฟล์ Google Drive / PDF</label>
+                    <input type="text" id="cert-form-link" placeholder="https://drive.google.com/file/d/.../view?usp=sharing">
+                    <small>สามารถวางลิงก์ View หรือ Share จาก Google Drive ได้โดยตรง</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeCertModal()">ยกเลิก</button>
+                <button class="btn-primary" id="btn-save-cert" onclick="saveCertItem()">💾 บันทึกข้อมูล</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/th.js"></script>
@@ -595,13 +699,17 @@
 
         // ================= Global State =================
         let SITE_DATA = { news: [], activities: [], manuals: [], plans: [], forms: [], personnel: [] };
+        let CERTS_DATA = []; // Certificate database
         let isEditing = false;
         let currentModalCategory = 'news'; // 'news' or 'activity'
+        const DEFAULT_CERT_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTRZKKSC38bKraDDdDE5hjVGQtbr1e0inwEK63m73tJAnYaNNo_AbxbGX_IF__eEwRC7_JGB0-dQiDP/pub?output=csv";
 
         // ================= Initialization =================
         document.addEventListener('DOMContentLoaded', async () => {
             initDarkMode();
+            initGasUrl();
             await loadAllData();
+            await loadCertificatesData();
             initDatePicker();
             // checkMigrationStatus(); // Disabled migration button for local mode
         });
@@ -1460,7 +1568,345 @@
                 }
             }, 10);
         }
-    </script>
-</body>
 
-</html>
+        // ================= Certificate Management Logic (2-Way Sync) =================
+        function initGasUrl() {
+            const savedUrl = localStorage.getItem('gas_cert_api_url') || '';
+            const input = document.getElementById('gas-api-url');
+            if (input) input.value = savedUrl;
+        }
+
+        function saveGasUrl() {
+            const input = document.getElementById('gas-api-url');
+            if (input) {
+                const val = input.value.trim();
+                localStorage.setItem('gas_cert_api_url', val);
+                alert("✅ บันทึก Google Apps Script Web App URL เรียบร้อยแล้ว!");
+                loadCertificatesData(true);
+            }
+        }
+
+        function getGasUrl() {
+            return localStorage.getItem('gas_cert_api_url') || (document.getElementById('gas-api-url') ? document.getElementById('gas-api-url').value.trim() : '');
+        }
+
+        async function loadCertificatesData(forceRefresh = false) {
+            const statusEl = document.getElementById('cert-status-text');
+            const tbody = document.getElementById('cert-admin-tbody');
+            if (statusEl) statusEl.innerHTML = '<span style="color:#f57c00;">⏳ กำลังโหลดข้อมูล...</span>';
+
+            const gasUrl = getGasUrl();
+            try {
+                if (gasUrl) {
+                    // Fetch directly from Google Apps Script Web App (Realtime)
+                    const fetchUrl = gasUrl + (gasUrl.includes('?') ? '&' : '?') + 't=' + Date.now();
+                    const res = await fetch(fetchUrl);
+                    const json = await res.json();
+                    if (json && json.status === 'success' && Array.isArray(json.data)) {
+                        CERTS_DATA = json.data;
+                        if (statusEl) statusEl.innerHTML = '<span style="color:#2e7d32;">🟢 ซิงก์ผ่าน Google Apps Script (Realtime)</span>';
+                    } else {
+                        throw new Error(json.message || "Invalid JSON format from Apps Script");
+                    }
+                } else {
+                    // Fallback to Published CSV
+                    const res = await fetch(DEFAULT_CERT_SHEET_CSV_URL + '&_t=' + Date.now());
+                    if (res.ok) {
+                        const text = await res.text();
+                        CERTS_DATA = parseCertCSV(text);
+                        if (statusEl) statusEl.innerHTML = '<span style="color:#0288d1;">ℹ️ โหลดผ่าน Google Sheet CSV (ตั้งค่า Apps Script URL เพื่อเปิดโหมด Realtime 2-Way)</span>';
+                    } else {
+                        throw new Error("Failed to fetch Google Sheet CSV");
+                    }
+                }
+
+                populateCertFilters();
+                renderCertAdminTable(CERTS_DATA);
+
+            } catch (err) {
+                console.error("Certificates load error:", err);
+                if (statusEl) statusEl.innerHTML = `<span style="color:#d32f2f;">❌ โหลดข้อมูลไม่สำเร็จ: ${err.message}</span>`;
+                if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: red; padding: 20px;">เกิดข้อผิดพลาด: ${err.message}</td></tr>`;
+            }
+        }
+
+        function parseCertCSV(text) {
+            const rows = text.split('\n').filter(r => r.trim() !== '');
+            if (rows.length <= 1) return [];
+            const headers = rows[0].split(',').map(h => h.trim().replace(/^"|"$/g, '').toLowerCase());
+
+            return rows.slice(1).map((row, idx) => {
+                const values = [];
+                let inQuote = false;
+                let currentVal = '';
+                for (let i = 0; i < row.length; i++) {
+                    const char = row[i];
+                    if (char === '"') {
+                        inQuote = !inQuote;
+                    } else if (char === ',' && !inQuote) {
+                        values.push(currentVal.trim().replace(/^"|"$/g, ''));
+                        currentVal = '';
+                    } else {
+                        currentVal += char;
+                    }
+                }
+                values.push(currentVal.trim().replace(/^"|"$/g, ''));
+
+                const obj = { _row: idx + 2 }; // row number in Sheet (1-based, skipping header)
+                headers.forEach((h, index) => {
+                    obj[h] = values[index] || '';
+                });
+
+                return {
+                    _row: obj._row,
+                    name: obj.name || obj['ชื่อ-สกุล'] || obj['ชื่อ'] || '',
+                    course: obj.course || obj['หลักสูตร'] || '-',
+                    year: obj.year || obj['ปี'] || obj['ปีการศึกษา'] || '',
+                    type: obj.type || obj['ประเภท'] || '-',
+                    link: obj.link || obj['ลิงก์'] || obj['เอกสาร'] || ''
+                };
+            });
+        }
+
+        function populateCertFilters() {
+            const yearSelect = document.getElementById('cert-admin-filter-year');
+            const courseSelect = document.getElementById('cert-admin-filter-course');
+            
+            const years = [...new Set(CERTS_DATA.map(c => c.year).filter(Boolean))].sort().reverse();
+            const courses = [...new Set(CERTS_DATA.map(c => c.course).filter(c => c && c !== '-'))].sort();
+            const types = [...new Set(CERTS_DATA.map(c => c.type).filter(c => c && c !== '-'))].sort();
+
+            if (yearSelect) yearSelect.innerHTML = '<option value="">ปีทั้งหมด</option>' + years.map(y => `<option value="${y}">${y}</option>`).join('');
+            if (courseSelect) courseSelect.innerHTML = '<option value="">หลักสูตรทั้งหมด</option>' + courses.map(c => `<option value="${c}">${c}</option>`).join('');
+
+            const dlCourse = document.getElementById('cert-form-course-list');
+            const dlYear = document.getElementById('cert-form-year-list');
+            const dlType = document.getElementById('cert-form-type-list');
+
+            if (dlCourse) dlCourse.innerHTML = courses.map(c => `<option value="${c}"></option>`).join('');
+            if (dlYear) dlYear.innerHTML = years.map(y => `<option value="${y}"></option>`).join('');
+            if (dlType) dlType.innerHTML = types.map(t => `<option value="${t}"></option>`).join('');
+        }
+
+        function filterCertAdminTable() {
+            const term = (document.getElementById('cert-admin-search').value || '').toLowerCase().trim();
+            const year = document.getElementById('cert-admin-filter-year').value;
+            const course = document.getElementById('cert-admin-filter-course').value;
+
+            const filtered = CERTS_DATA.filter(c => {
+                if (year && c.year !== year) return false;
+                if (course && c.course !== course) return false;
+                if (term) {
+                    const matchName = (c.name || '').toLowerCase().includes(term);
+                    const matchCourse = (c.course || '').toLowerCase().includes(term);
+                    return matchName || matchCourse;
+                }
+                return true;
+            });
+
+            renderCertAdminTable(filtered);
+        }
+
+        function renderCertAdminTable(items) {
+            const tbody = document.getElementById('cert-admin-tbody');
+            const countEl = document.getElementById('cert-count-text');
+            if (!tbody) return;
+
+            if (countEl) countEl.innerText = `แสดง ${items.length} จากทั้งหมด ${CERTS_DATA.length} รายการ`;
+
+            if (items.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 25px; color: var(--text-muted);">ไม่พบรายการข้อมูลเกียรติบัตร</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = items.map((c, i) => {
+                const viewLink = c.link ? `<a href="${c.link}" target="_blank" style="color: var(--primary-purple); text-decoration: underline; font-weight: 500;">🔗 เปิดดู</a>` : `<span style="color:#aaa;">-</span>`;
+                return `
+                    <tr style="border-bottom: 1px solid var(--border-color);">
+                        <td style="padding: 10px 16px;">${i + 1}</td>
+                        <td style="padding: 10px 16px; font-weight: 600;">${c.name || '-'}</td>
+                        <td style="padding: 10px 16px;">${c.course || '-'}</td>
+                        <td style="padding: 10px 16px;">${c.year || '-'}</td>
+                        <td style="padding: 10px 16px;"><span style="background: rgba(156, 39, 176, 0.1); color: var(--primary-purple); padding: 3px 8px; border-radius: 12px; font-size: 0.85rem; font-weight: 600;">${c.type || '-'}</span></td>
+                        <td style="padding: 10px 16px;">${viewLink}</td>
+                        <td style="padding: 10px 16px; text-align: center; white-space: nowrap;">
+                            <button class="btn-secondary" style="padding: 4px 8px; font-size: 0.85rem; margin-right: 4px;" onclick="editCertItem(${c._row})">✏️ แก้ไข</button>
+                            <button style="padding: 4px 8px; font-size: 0.85rem; background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; border-radius: 4px; cursor: pointer;" onclick="deleteCertItem(${c._row}, '${encodeURIComponent(c.name)}')">🗑️ ลบ</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function openCertModal(item = null) {
+            const modal = document.getElementById('cert-modal');
+            const titleEl = document.getElementById('cert-modal-title');
+            const rowInput = document.getElementById('cert-row-index');
+            const nameInput = document.getElementById('cert-form-name');
+            const courseInput = document.getElementById('cert-form-course');
+            const yearInput = document.getElementById('cert-form-year');
+            const typeInput = document.getElementById('cert-form-type');
+            const linkInput = document.getElementById('cert-form-link');
+
+            if (item) {
+                titleEl.innerText = '✏️ แก้ไขข้อมูลเกียรติบัตร';
+                rowInput.value = item._row || '';
+                nameInput.value = item.name || '';
+                courseInput.value = item.course || '';
+                yearInput.value = item.year || '';
+                typeInput.value = item.type || '';
+                linkInput.value = item.link || '';
+            } else {
+                titleEl.innerText = '📜 เพิ่มเกียรติบัตร';
+                rowInput.value = '';
+                nameInput.value = '';
+                courseInput.value = '';
+                yearInput.value = '';
+                typeInput.value = '';
+                linkInput.value = '';
+            }
+
+            modal.classList.add('active');
+        }
+
+        function closeCertModal() {
+            document.getElementById('cert-modal').classList.remove('active');
+        }
+
+        function editCertItem(rowNumber) {
+            const item = CERTS_DATA.find(c => c._row === rowNumber);
+            if (item) {
+                openCertModal(item);
+            }
+        }
+
+        async function saveCertItem() {
+            const gasUrl = getGasUrl();
+            if (!gasUrl) {
+                alert("⚠️ กรุณาระบุและบันทึก Google Apps Script Web App URL ก่อนดำเนินการ เพื่อให้สามารถบันทึกลง Google Sheets ได้แบบ Realtime!");
+                return;
+            }
+
+            const row = document.getElementById('cert-row-index').value;
+            const name = document.getElementById('cert-form-name').value.trim();
+            const course = document.getElementById('cert-form-course').value.trim();
+            const year = document.getElementById('cert-form-year').value.trim();
+            const type = document.getElementById('cert-form-type').value.trim();
+            const link = document.getElementById('cert-form-link').value.trim();
+
+            if (!name) {
+                alert("กรุณากรอกชื่อ-สกุล");
+                return;
+            }
+
+            const saveBtn = document.getElementById('btn-save-cert');
+            saveBtn.disabled = true;
+            saveBtn.innerText = '⏳ กำลังบันทึกลง Sheet...';
+
+            const payload = {
+                action: row ? 'update' : 'add',
+                row: row ? parseInt(row) : null,
+                item: { name, course, year, type, link }
+            };
+
+            try {
+                const res = await fetch(gasUrl, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                const result = await res.json();
+
+                if (result.status === 'success') {
+                    alert(row ? '✅ อัปเดตข้อมูลเกียรติบัตรสำเร็จ!' : '✅ เพิ่มเกียรติบัตรสำเร็จ!');
+                    closeCertModal();
+                    await loadCertificatesData(true);
+                } else {
+                    alert('❌ เกิดข้อผิดพลาด: ' + (result.message || 'ไม่สามารถบันทึกได้'));
+                }
+            } catch (err) {
+                console.error("Save error:", err);
+                alert('❌ เกิดข้อผิดพลาดในการเชื่อมต่อ Google Apps Script: ' + err.message);
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.innerText = '💾 บันทึกข้อมูล';
+            }
+        }
+
+        async function deleteCertItem(rowNumber, encodedName) {
+            const name = decodeURIComponent(encodedName);
+            if (!confirm(`ยืนยันการลบเกียรติบัตรของ "${name}" ออกจาก Google Sheets หรือไม่?`)) {
+                return;
+            }
+
+            const gasUrl = getGasUrl();
+            if (!gasUrl) {
+                alert("⚠️ กรุณาระบุ Google Apps Script Web App URL เพื่อลบข้อมูลออกจาก Sheet");
+                return;
+            }
+
+            try {
+                const res = await fetch(gasUrl, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'delete', row: parseInt(rowNumber) })
+                });
+                const result = await res.json();
+                if (result.status === 'success') {
+                    alert('✅ ลบรายการเกียรติบัตรสำเร็จ!');
+                    await loadCertificatesData(true);
+                } else {
+                    alert('❌ ไม่สามารถลบได้: ' + result.message);
+                }
+            } catch (err) {
+                alert('❌ เกิดข้อผิดพลาดในการลบ: ' + err.message);
+            }
+        }
+
+        async function handleCertCSVUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const gasUrl = getGasUrl();
+            if (!gasUrl) {
+                alert("⚠️ กรุณาระบุ Google Apps Script Web App URL ก่อนนำเข้า CSV หลายรายการ");
+                input.value = '';
+                return;
+            }
+
+            if (!confirm(`ยืนยันการนำเข้าไฟล์ "${file.name}" เข้าสู่ Google Sheets ทันทีหรือไม่?`)) {
+                input.value = '';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const text = e.target.result;
+                    const items = parseCertCSV(text);
+                    if (items.length === 0) {
+                        alert("❌ ไม่พบข้อมูลในไฟล์ CSV");
+                        return;
+                    }
+
+                    const statusEl = document.getElementById('cert-status-text');
+                    if (statusEl) statusEl.innerHTML = `⏳ กำลังนำเข้า ${items.length} รายการลง Sheet...`;
+
+                    const res = await fetch(gasUrl, {
+                        method: 'POST',
+                        body: JSON.stringify({ action: 'batchAdd', items: items })
+                    });
+                    const result = await res.json();
+
+                    if (result.status === 'success') {
+                        alert(`✅ นำเข้าข้อมูลเกียรติบัตรสำเร็จ ${result.count || items.length} รายการ!`);
+                        await loadCertificatesData(true);
+                    } else {
+                        alert('❌ ไม่สามารถนำเข้าข้อมูลได้: ' + result.message);
+                    }
+                } catch (err) {
+                    alert('❌ ผิดพลาดในการอ่านไฟล์: ' + err.message);
+                } finally {
+                    input.value = '';
+                }
+            };
+            reader.readAsText(file);
+        }

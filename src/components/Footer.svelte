@@ -17,7 +17,7 @@
 			<a href="https://personnel.obec.go.th" target="_blank" rel="noopener noreferrer" class="logo-link" title="ระบบบุคลากร">
 				<img src="/assets/images/logos/personnel.png" alt="ระบบบุคลากร" loading="lazy" decoding="async">
 			</a>
-			<a href="https://hrms.moe.go.th" target="_blank" rel="noopener noreferrer" class="logo-link" title="HRMS">
+			<a href="https://hrms.obec.go.th" target="_blank" rel="noopener noreferrer" class="logo-link" title="HRMS">
 				<img src="/assets/images/logos/hrms.png" alt="HRMS" loading="lazy" decoding="async">
 			</a>
 		</div>

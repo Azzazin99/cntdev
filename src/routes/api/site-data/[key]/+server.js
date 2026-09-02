@@ -12,16 +12,10 @@ import {
 	updateItem
 } from '$lib/server/contentStore';
 import { sanitizeText } from '$lib/sanitizeText';
+import { sortSiteItemsByOrder } from '$lib/sortSiteOrder';
 
 const ITEM_COLLECTIONS = new Set(['manuals', 'knowledge', 'plans', 'forms', 'personnel']);
 const BULK_KEYS = new Set(['authority']);
-
-/** @param {unknown[]} items */
-function sortByOrder(items) {
-	return [...items].sort(
-		(a, b) => (Number(a?.sortOrder) || 0) - (Number(b?.sortOrder) || 0)
-	);
-}
 
 /** @param {string} key @param {unknown[]} items */
 function sanitizeItems(key, items) {
@@ -103,7 +97,7 @@ export async function GET({ params }) {
 			items = await getSiteList(key);
 		}
 		return json({
-			items: sanitizeItems(key, sortByOrder(items)),
+			items: sanitizeItems(key, sortSiteItemsByOrder(key, items)),
 			source: isFirestoreEnabled() ? 'firestore' : 'json'
 		});
 	}

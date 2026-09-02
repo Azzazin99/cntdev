@@ -3,19 +3,23 @@ import path from 'node:path';
 import { getFirestore, isFirestoreEnabled } from '$lib/server/firebaseAdmin';
 
 export const DEFAULT_SHEET_URL =
-	'https://docs.google.com/spreadsheets/d/e/2PACX-1vTRZKKSC38bKraDDdDE5hjVGQtbr1e0inwEK63m73tJAnYaNNo_AbxbGX_IF__eEwRC7_JGB0-dQiDP/pub?output=csv';
+	'https://script.google.com/macros/s/AKfycbzvsawMlvwvkr1-gyVIXVMht9i79aV3mljlUuIYhVajALuMBKpFROEsW5izrU7NvBle7w/exec';
 
 const CONFIG_DOC_ID = 'certificates_config';
 const JSON_PATH = path.join(process.cwd(), 'static', 'assets', 'data', 'certificates_config.json');
 
-/** @returns {Promise<{ sheetUrl: string }>} */
 export async function getCertificatesConfig() {
 	const db = getFirestore();
 	if (db) {
 		const doc = await db.collection('site_data').doc(CONFIG_DOC_ID).get();
 		if (doc.exists) {
 			const data = doc.data();
-			const sheetUrl = String(data?.sheetUrl || '').trim();
+			let sheetUrl = String(data?.sheetUrl || '').trim();
+			// Auto-migrate: If the saved URL is the old CSV format, force it to the new GAS URL
+			// so the user can add certificates without errors.
+			if (sheetUrl && !sheetUrl.includes('script.google.com')) {
+				sheetUrl = DEFAULT_SHEET_URL;
+			}
 			if (sheetUrl) return { sheetUrl };
 		}
 		return { sheetUrl: DEFAULT_SHEET_URL };
@@ -24,7 +28,10 @@ export async function getCertificatesConfig() {
 	try {
 		const raw = await fs.readFile(JSON_PATH, 'utf8');
 		const data = JSON.parse(raw);
-		const sheetUrl = String(data?.sheetUrl || '').trim();
+		let sheetUrl = String(data?.sheetUrl || '').trim();
+		if (sheetUrl && !sheetUrl.includes('script.google.com')) {
+			sheetUrl = DEFAULT_SHEET_URL;
+		}
 		return { sheetUrl: sheetUrl || DEFAULT_SHEET_URL };
 	} catch {
 		return { sheetUrl: DEFAULT_SHEET_URL };

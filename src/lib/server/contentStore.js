@@ -18,7 +18,8 @@ const DATA_DIR = path.join(process.cwd(), 'static', 'assets', 'data');
 const IMAGE_DIRS = {
 	news: path.join(process.cwd(), 'static', 'assets', 'images', 'news'),
 	activities: path.join(process.cwd(), 'static', 'assets', 'images', 'activity'),
-	personnel: path.join(process.cwd(), 'static', 'assets', 'images', 'personnel')
+	personnel: path.join(process.cwd(), 'static', 'assets', 'images', 'personnel'),
+	banner: path.join(process.cwd(), 'static', 'assets', 'images')
 };
 
 const DOCUMENT_DIRS = {
@@ -28,7 +29,8 @@ const DOCUMENT_DIRS = {
 const LOCAL_IMAGE_SUBDIRS = {
 	news: 'news',
 	activities: 'activity',
-	personnel: 'personnel'
+	personnel: 'personnel',
+	banner: ''
 };
 
 const LOCAL_DOCUMENT_SUBDIRS = {
@@ -36,7 +38,7 @@ const LOCAL_DOCUMENT_SUBDIRS = {
 };
 
 /** @typedef {'news'} PdfCollectionName */
-/** @typedef {'news' | 'activities' | 'personnel'} ImageCollectionName */
+/** @typedef {'news' | 'activities' | 'personnel' | 'banner'} ImageCollectionName */
 /** @typedef {'news' | 'activities' | 'manuals' | 'knowledge' | 'plans' | 'forms' | 'personnel'} CollectionName */
 
 /** @param {CollectionName} name */
@@ -126,6 +128,60 @@ export async function updateItem(collection, id, patch) {
 	data[idx] = { ...data[idx], ...payload };
 	await writeJsonFile(collection, data);
 	return data[idx];
+}
+
+/**
+ * Reassign sortOrder so orderedIds[0] displays first (highest value).
+ * @param {CollectionName} collection
+ * @param {string[]} orderedIds
+ */
+export async function reorderItems(collection, orderedIds) {
+	if (!Array.isArray(orderedIds) || orderedIds.length === 0) {
+		throw new Error('ต้องระบุลำดับ id');
+	}
+	const unique = new Set(orderedIds.map(String));
+	if (unique.size !== orderedIds.length) {
+		throw new Error('รายการ id ซ้ำกัน');
+	}
+
+	const existing = await listItems(collection);
+	const byId = new Map(existing.map((item) => [String(item.id), item]));
+	if (byId.size !== orderedIds.length) {
+		throw new Error('จำนวนรายการไม่ตรงกับข้อมูลในระบบ');
+	}
+	for (const id of orderedIds) {
+		if (!byId.has(String(id))) {
+			throw new Error(`ไม่พบรายการ id ${id}`);
+		}
+	}
+
+	const n = orderedIds.length;
+	const db = getFirestore();
+	if (db) {
+		let batch = db.batch();
+		let pending = 0;
+		for (let i = 0; i < n; i++) {
+			const id = String(orderedIds[i]);
+			const sortOrder = n - i;
+			batch.update(db.collection(collection).doc(id), { sortOrder });
+			pending++;
+			if (pending >= 400) {
+				await batch.commit();
+				batch = db.batch();
+				pending = 0;
+			}
+		}
+		if (pending > 0) await batch.commit();
+		return orderedIds.map((id, i) => ({ id: String(id), sortOrder: n - i }));
+	}
+
+	const next = orderedIds.map((id, i) => ({
+		...byId.get(String(id)),
+		id: String(id),
+		sortOrder: n - i
+	}));
+	await writeJsonFile(collection, next);
+	return next;
 }
 
 /** @param {CollectionName} collection @param {string} listKey */
@@ -231,12 +287,21 @@ export async function saveImageFile(collection, file) {
 	requireStorageOrLocalDisk();
 
 	const dir = IMAGE_DIRS[collection];
-	const subdir = LOCAL_IMAGE_SUBDIRS[collection] || collection;
+	const subdir = LOCAL_IMAGE_SUBDIRS[collection] ?? collection;
+	if (collection === 'banner') {
+		const bannerFilename = `banner${ext}`;
+		return writeLocalFileOrStorageError(
+			buffer,
+			dir,
+			bannerFilename,
+			`/assets/images/${bannerFilename}`
+		);
+	}
 	return writeLocalFileOrStorageError(
 		buffer,
 		dir,
 		filename,
-		`assets/images/${subdir}/${filename}`
+		`/assets/images/${subdir}/${filename}`
 	);
 }
 

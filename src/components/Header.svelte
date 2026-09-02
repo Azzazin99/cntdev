@@ -1,12 +1,27 @@
 <script>
 	import { tick } from 'svelte';
+	import { afterNavigate } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { trapFocusKeydown, restoreFocus, getFocusableElements } from '$lib/modalFocus';
+	import { resolveDocumentOpenUrl } from '$lib/documentLink';
+	import {
+		DEFAULT_BANNER_ALT,
+		DEFAULT_BANNER_IMAGE,
+		DEFAULT_BANNER_LINK
+	} from '$lib/bannerDefaults';
 
 	/** @type {{ text: string; link: string }[]} */
 	export let navItems = [];
 	export let toggleTheme = () => {};
 	export let currentTheme = 'light';
+
+	/** @type {{ imageUrl?: string; linkUrl?: string; altText?: string } | undefined} */
+	export let banner = undefined;
+
+	$: bannerImage = resolveDocumentOpenUrl(banner?.imageUrl || DEFAULT_BANNER_IMAGE);
+	$: bannerLink = (banner?.linkUrl || DEFAULT_BANNER_LINK).trim() || DEFAULT_BANNER_LINK;
+	$: bannerAlt = (banner?.altText || DEFAULT_BANNER_ALT).trim() || DEFAULT_BANNER_ALT;
+	$: bannerExternal = /^https?:\/\//i.test(bannerLink);
 
 	let mobileMenuOpen = false;
 	/** @type {HTMLButtonElement | null} */
@@ -20,6 +35,14 @@
 	$: themeAriaLabel = currentTheme === 'dark' ? 'สลับเป็นโหมดสว่าง' : 'สลับเป็นโหมดมืด';
 	$: pathname = $page.url.pathname;
 
+	// Clear focus/hover artifact on the previous nav link after client navigations
+	afterNavigate(() => {
+		const el = document.activeElement;
+		if (el instanceof HTMLElement && el.classList.contains('nav-link')) {
+			el.blur();
+		}
+	});
+
 	$: if (typeof document !== 'undefined') {
 		for (const el of [
 			document.getElementById('main-content'),
@@ -31,10 +54,15 @@
 		}
 	}
 
-	/** @param {string} link */
-	function isActive(link) {
-		if (link === '/') return pathname === '/';
-		return pathname === link || pathname.startsWith(`${link}/`);
+	/**
+	 * Must take pathname as an argument so the template expression depends on it.
+	 * A closure over `pathname` alone can leave `.active` stuck after client navigations.
+	 * @param {string} path
+	 * @param {string} link
+	 */
+	function isActive(path, link) {
+		if (link === '/') return path === '/';
+		return path === link || path.startsWith(`${link}/`);
 	}
 
 	async function openMobileMenu() {
@@ -72,10 +100,13 @@
 </script>
 
 <header class="main-header">
-	<a href="/">
+	<a
+		href={bannerLink}
+		{...bannerExternal ? { target: '_blank', rel: 'noopener noreferrer' } : {}}
+	>
 		<img
-			src="/assets/images/banner.png"
-			alt="กลุ่มพัฒนาครูและบุคลากรทางการศึกษา"
+			src={bannerImage}
+			alt={bannerAlt}
 			class="responsive-banner"
 			width="6063"
 			height="1250"
@@ -101,9 +132,15 @@
 		</button>
 
 		<ul class="nav-menu desktop-menu">
-			{#each navItems as item}
+			{#each navItems as item (item.link)}
 				<li>
-					<a href={item.link} class="nav-link {isActive(item.link) ? 'active' : ''}">
+					<a
+						href={item.link}
+						class="nav-link"
+						class:active={isActive(pathname, item.link)}
+						aria-current={isActive(pathname, item.link) ? 'page' : undefined}
+						data-sveltekit-reload={item.link === '/logout' ? '' : undefined}
+					>
 						{item.text}
 					</a>
 				</li>
@@ -144,11 +181,14 @@
 		<button class="mobile-close-btn" on:click={closeMobileMenu} aria-label="ปิดเมนู">✕</button>
 	</div>
 	<ul class="mobile-nav-list">
-		{#each navItems as item}
+		{#each navItems as item (item.link)}
 			<li>
 				<a
 					href={item.link}
-					class="mobile-nav-link {isActive(item.link) ? 'active' : ''}"
+					class="mobile-nav-link"
+					class:active={isActive(pathname, item.link)}
+					aria-current={isActive(pathname, item.link) ? 'page' : undefined}
+					data-sveltekit-reload={item.link === '/logout' ? '' : undefined}
 					on:click={closeMobileMenu}
 				>
 					{item.text}
@@ -311,10 +351,16 @@
 		min-height: 44px;
 	}
 
-	.mobile-nav-link:hover,
 	.mobile-nav-link.active {
 		background: var(--primary-purple-light);
 		color: var(--primary-purple);
+	}
+
+	@media (hover: hover) and (pointer: fine) {
+		.mobile-nav-link:hover {
+			background: var(--primary-purple-light);
+			color: var(--primary-purple);
+		}
 	}
 
 	.mobile-menu-footer {

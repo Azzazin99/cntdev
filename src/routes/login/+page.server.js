@@ -4,6 +4,7 @@ import {
 	createSessionToken,
 	getAuthConfigStatus
 } from '$lib/server/localAuth';
+import { SESSION_COOKIE_NAME, sessionCookieOptions } from '$lib/server/sessionCookie';
 import { getClientIp } from '$lib/server/rateLimit';
 import {
 	getTurnstileSiteKey,
@@ -76,11 +77,8 @@ export const actions = {
 			});
 		}
 
-		cookies.set('cntdev_session', token, {
-			path: '/',
-			httpOnly: true,
-			sameSite: 'lax',
-			secure: url.protocol === 'https:',
+		cookies.set(SESSION_COOKIE_NAME, token, {
+			...sessionCookieOptions(url),
 			maxAge: 60 * 60 * 12
 		});
 

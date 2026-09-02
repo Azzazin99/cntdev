@@ -257,6 +257,10 @@
     <td><code>POST</code> / <code>PUT</code> / <code>DELETE /api/news</code></td>
     </tr>
     <tr>
+    <td>API ลำดับ</td>
+    <td><code>POST /api/news/reorder</code> — admin ลาก ☰ แล้วบันทึกทันที</td>
+    </tr>
+    <tr>
     <td>เอกสาร (PDF)</td>
     <td>เก็บ URL ใน field <code>link</code> — วางลิงก์ Google Drive ใน admin (ไม่อัปโหลดบนเว็บ)</td>
     </tr>
@@ -310,6 +314,10 @@
     <td><code>POST</code> / <code>PUT</code> / <code>DELETE /api/activities</code></td>
     </tr>
     <tr>
+    <td>API ลำดับ</td>
+    <td><code>POST /api/activities/reorder</code> — admin ลาก ☰ แล้วบันทึกทันที</td>
+    </tr>
+    <tr>
     <td>รูป production</td>
     <td>Vercel Blob: <code>activities/{filename}</code></td>
     </tr>
@@ -333,11 +341,15 @@
     </thead>
     <tbody><tr>
     <td>API อ่าน</td>
-    <td><code>GET /api/site-data/{key}</code> คืน <code>{ items, source }</code> (เรียงตาม <code>sortOrder</code>)</td>
+    <td><code>GET /api/site-data/{key}</code> คืน <code>{ items, source }</code> — เรียง <code>sortOrder</code> จากมาก→น้อย (ค่ามาก = แสดงก่อน; รายการใหม่ใช้ <code>Date.now()</code>)</td>
     </tr>
     <tr>
     <td>API เขียน</td>
     <td><code>POST</code> / <code>PUT</code> / <code>DELETE /api/site-data/{key}</code> (ต่อรายการ)</td>
+    </tr>
+    <tr>
+    <td>API ลำดับ</td>
+    <td><code>POST /api/site-data/{key}/reorder</code> body <code>{ orderedIds }</code> — admin ลาก ☰ แล้วบันทึกทันที (รวม <code>personnel</code>)</td>
     </tr>
     <tr>
     <td>ฟิลด์</td>
@@ -353,7 +365,7 @@
     </tr>
     <tr>
     <td>โค้ด</td>
-    <td><code>src/lib/documentLink.js</code>, <code>src/routes/api/site-data/[key]/+server.js</code></td>
+    <td><code>src/lib/sortSiteOrder.js</code>, <code>src/lib/documentLink.js</code>, <code>src/routes/api/site-data/[key]/+server.js</code>, <code>src/routes/api/site-data/[key]/reorder/+server.js</code></td>
     </tr>
     </tbody></table>
     <h4>อำนาจหน้าที่ (<code>authority</code>)</h4>
@@ -374,6 +386,10 @@
     <tr>
     <td>API เขียน</td>
     <td><code>POST</code> / <code>PUT</code> / <code>DELETE /api/site-data/personnel</code> (ต่อรายการ)</td>
+    </tr>
+    <tr>
+    <td>API ลำดับ</td>
+    <td><code>POST /api/site-data/personnel/reorder</code> — ลาก ☰ แล้วบันทึกทันที (<code>sortOrder</code> มาก = บน)</td>
     </tr>
     <tr>
     <td>ฟิลด์</td>
@@ -493,7 +509,7 @@
     </tr>
     <tr>
     <td>Login / logout</td>
-    <td><code>src/routes/login/</code>, <code>src/routes/logout/</code>, <code>src/lib/server/localAuth.js</code>, <code>src/lib/server/turnstile.js</code></td>
+    <td><code>src/routes/login/</code>, <code>src/routes/logout/</code>, <code>src/lib/server/localAuth.js</code>, <code>src/lib/server/sessionCookie.js</code>, <code>src/lib/server/turnstile.js</code>, <code>src/components/Header.svelte</code> (logout ใช้ <code>data-sveltekit-reload</code>)</td>
     </tr>
     <tr>
     <td>API ข่าว/กิจกรรม</td>

@@ -1,5 +1,6 @@
 import { error } from '@sveltejs/kit';
 import { verifySessionToken } from '$lib/server/localAuth';
+import { SESSION_COOKIE_NAME } from '$lib/server/sessionCookie';
 import { checkRateLimit, getClientIp } from '$lib/server/rateLimit';
 
 const LOGIN_LIMIT = 5;
@@ -68,7 +69,7 @@ function applyCacheHeaders(response, pathname) {
 export async function handle({ event, resolve }) {
 	let user = null;
 	try {
-		const token = event.cookies.get('cntdev_session') || '';
+		const token = event.cookies.get(SESSION_COOKIE_NAME) || '';
 		user = verifySessionToken(token);
 	} catch {
 		user = null;

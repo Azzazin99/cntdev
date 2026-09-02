@@ -1,16 +1,23 @@
 <script>
 	import { onMount, onDestroy, tick } from 'svelte';
-	import { goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import { thaiDateToInput } from '$lib/utils';
 	import { fetchAdminJson } from '$lib/adminFetch';
 	import { trapFocusKeydown, restoreFocus } from '$lib/modalFocus';
-	import { validateDocumentLink } from '$lib/documentLink';
+	import { validateDocumentLink, resolveDocumentOpenUrl } from '$lib/documentLink';
+	import { resolvePersonnelImageSrc } from '$lib/personnelImage';
+	import {
+		DEFAULT_BANNER_ALT,
+		DEFAULT_BANNER_IMAGE,
+		DEFAULT_BANNER_LINK
+	} from '$lib/bannerDefaults';
 	import {
 		validateImageForUpload,
 		validatePdfForUpload,
 		MAX_IMAGE_MB,
 		MAX_PDF_MB
 	} from '$lib/uploadLimits';
+	import { bindSortable } from '$lib/adminSortable';
 	export let data;
 
 	/** Plain-text label for status (screen readers); emoji kept for sighted users. */
@@ -19,11 +26,12 @@
 		return msg.replace(/^[^\p{L}\p{N}]+/u, '').trim() || undefined;
 	}
 
-	let activeTab = 'news';
+	let activeTab = 'personnel';
 	let loading = false;
 	let statusMessage = '';
 	let listDirty = false;
 	let certificatesDirty = false;
+	let bannerDirty = false;
 	let savedCertificatesSheetUrl = '';
 	let dataHint = '';
 	let newsDataSource = '';
@@ -44,6 +52,7 @@
 	function hasUnsavedChanges() {
 		if (isListTab(activeTab) && listDirty) return true;
 		if (activeTab === 'certificates' && certificatesDirty) return true;
+		if (activeTab === 'banner' && bannerDirty) return true;
 		return false;
 	}
 
@@ -54,11 +63,6 @@
 		}
 	}
 
-	function personnelImageSrc(path) {
-		if (!path) return '/assets/images/logos/moe.png';
-		if (path.startsWith('http')) return path;
-		return path.startsWith('/') ? path : `/${path}`;
-	}
 	let authChecking = false;
 	let role = data?.user?.role || null;
 	let userEmail = data?.user?.email || '';
@@ -70,20 +74,35 @@
 	let activities = [];
 
 	let listItems = [];
+	/** Item/list ContentStores — names used in headings; order follows adminNavTabs. */
 	const listTypes = [
+		{ id: 'personnel', name: '👥 บุคลากร' },
+		{ id: 'authority', name: '⚖️ อำนาจหน้าที่' },
 		{ id: 'manuals', name: '📘 คู่มือปฏิบัติงาน' },
-		{ id: 'knowledge', name: '📚 คลังความรู้' },
 		{ id: 'plans', name: '📈 แผนพัฒนาครู' },
 		{ id: 'forms', name: '📝 แบบฟอร์ม' },
-		{ id: 'authority', name: '⚖️ อำนาจหน้าที่' },
-		{ id: 'personnel', name: '👥 บุคลากร' }
+		{ id: 'knowledge', name: '📚 คลังความรู้' }
+	];
+
+	/** Admin tab bar order: public navbar order, then knowledge, then banner. */
+	const adminNavTabs = [
+		{ id: 'personnel', label: '👥 บุคลากร' },
+		{ id: 'authority', label: '⚖️ อำนาจหน้าที่' },
+		{ id: 'manuals', label: '📘 คู่มือปฏิบัติงาน' },
+		{ id: 'plans', label: '📈 แผนพัฒนาครู' },
+		{ id: 'news', label: '📰 ข่าวประชาสัมพันธ์' },
+		{ id: 'activity', label: '📸 ภาพกิจกรรม' },
+		{ id: 'forms', label: '📝 แบบฟอร์ม' },
+		{ id: 'certificates', label: '🏆 คลังเกียรติบัตร' },
+		{ id: 'knowledge', label: '📚 คลังความรู้' },
+		{ id: 'banner', label: '🖼️ แบนเนอร์เว็บไซต์' }
 	];
 
 	function isListTab(tab) {
 		return listTypes.some((t) => t.id === tab);
 	}
 
-	const ITEM_COLLECTION_TABS = ['manuals', 'knowledge', 'plans', 'forms', 'personnel'];
+	const ITEM_COLLECTION_TABS = ['personnel', 'manuals', 'plans', 'forms', 'knowledge'];
 	function isItemCollectionTab(tab) {
 		return ITEM_COLLECTION_TABS.includes(tab);
 	}
@@ -213,6 +232,183 @@
 		}
 	}
 
+	/**
+	 * Apply Sortable page order (data-id list) onto the full array.
+	 * Prefer DOM id order over index splice — avoids double-move / wrong pairing after drag.
+	 * @template {{ id?: unknown }} T
+	 * @param {T[]} items
+	 * @param {string[]} pageOrderedIds
+	 * @param {number} page
+	 */
+	function applyPageOrderedIds(items, pageOrderedIds, page) {
+		const offset = (page - 1) * ADMIN_PAGE_SIZE;
+		const pageLen = Math.min(ADMIN_PAGE_SIZE, Math.max(0, items.length - offset));
+		if (pageLen === 0) return items;
+		const byId = new Map(items.map((item) => [String(item.id), item]));
+		const reorderedPage = pageOrderedIds
+			.map((id) => byId.get(String(id)))
+			.filter(Boolean);
+		if (reorderedPage.length !== pageLen) return null;
+		return [...items.slice(0, offset), ...reorderedPage, ...items.slice(offset + pageLen)];
+	}
+
+	/**
+	 * Fallback: move within a paged list using page-local Sortable indices.
+	 * @template {{ id?: unknown }} T
+	 * @param {T[]} items
+	 * @param {number} page
+	 * @param {number} oldIndex
+	 * @param {number} newIndex
+	 */
+	function moveInPagedList(items, page, oldIndex, newIndex) {
+		if (oldIndex === newIndex) return items;
+		const offset = (page - 1) * ADMIN_PAGE_SIZE;
+		const next = [...items];
+		const [moved] = next.splice(offset + oldIndex, 1);
+		next.splice(offset + newIndex, 0, moved);
+		return next;
+	}
+
+	/** @param {string} url @param {string[]} orderedIds */
+	async function persistOrderedIds(url, orderedIds) {
+		const parsed = await fetchAdminJson(url, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ orderedIds })
+		});
+		if (handleAuthFailure(parsed)) return false;
+		if (parsed.ok && parsed.data?.status === 'success') {
+			statusMessage = '✅ ' + (parsed.data.message || 'บันทึกลำดับเรียบร้อยแล้ว');
+			setTimeout(() => (statusMessage = ''), 2500);
+			return true;
+		}
+		statusMessage = '❌ ' + (parsed.message || 'บันทึกลำดับไม่สำเร็จ');
+		return false;
+	}
+
+	/** @param {string[]} pageIds @param {{ oldIndex: number, newIndex: number }} detail */
+	async function onNewsReorder(pageIds, detail) {
+		if (loading) return;
+		const previous = news;
+		const next =
+			applyPageOrderedIds(news, pageIds, newsPage) ||
+			moveInPagedList(news, newsPage, detail.oldIndex, detail.newIndex);
+		news = next;
+		loading = true;
+		try {
+			const ok = await persistOrderedIds(
+				'/api/news/reorder',
+				news.map((item) => String(item.id))
+			);
+			if (!ok) news = previous;
+		} catch (e) {
+			news = previous;
+			statusMessage = '❌ ผิดพลาด: ' + e.message;
+		} finally {
+			loading = false;
+		}
+	}
+
+	/** @param {string[]} pageIds @param {{ oldIndex: number, newIndex: number }} detail */
+	async function onActivityReorder(pageIds, detail) {
+		if (loading) return;
+		const previous = activities;
+		const next =
+			applyPageOrderedIds(activities, pageIds, activityPage) ||
+			moveInPagedList(activities, activityPage, detail.oldIndex, detail.newIndex);
+		activities = next;
+		loading = true;
+		try {
+			const ok = await persistOrderedIds(
+				'/api/activities/reorder',
+				activities.map((item) => String(item.id))
+			);
+			if (!ok) activities = previous;
+		} catch (e) {
+			activities = previous;
+			statusMessage = '❌ ผิดพลาด: ' + e.message;
+		} finally {
+			loading = false;
+		}
+	}
+
+	/** @param {string[]} pageIds @param {{ oldIndex: number, newIndex: number }} detail */
+	async function onCollectionReorder(pageIds, detail) {
+		if (loading || !isItemCollectionTab(activeTab)) return;
+		const previous = collectionItems;
+		const next =
+			applyPageOrderedIds(collectionItems, pageIds, collectionPage) ||
+			moveInPagedList(
+				collectionItems,
+				collectionPage,
+				detail.oldIndex,
+				detail.newIndex
+			);
+		collectionItems = next;
+		loading = true;
+		try {
+			const ok = await persistOrderedIds(
+				`/api/site-data/${activeTab}/reorder`,
+				collectionItems.map((item) => String(item.id))
+			);
+			if (!ok) {
+				collectionItems = previous;
+				await loadCollection(activeTab);
+				return;
+			}
+			// Soft-sync local sortOrder so refresh/restyle matches persisted desc order
+			const n = collectionItems.length;
+			collectionItems = collectionItems.map((item, i) => ({
+				...item,
+				sortOrder: n - i
+			}));
+		} catch (e) {
+			collectionItems = previous;
+			statusMessage = '❌ ผิดพลาด: ' + e.message;
+			await loadCollection(activeTab);
+		} finally {
+			loading = false;
+		}
+	}
+
+	/** @param {string[]} _ids @param {{ oldIndex: number, newIndex: number }} detail */
+	async function onAuthorityReorder(_ids, detail) {
+		if (loading) return;
+		const { oldIndex, newIndex } = detail;
+		if (oldIndex === newIndex) return;
+		const previous = listItems;
+		const next = [...listItems];
+		const [moved] = next.splice(oldIndex, 1);
+		next.splice(newIndex, 0, moved);
+		listItems = next;
+		loading = true;
+		statusMessage = '⏳ กำลังบันทึกลำดับ...';
+		try {
+			const parsed = await fetchAdminJson('/api/site-data/authority', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ data: listItems })
+			});
+			if (handleAuthFailure(parsed)) {
+				listItems = previous;
+				return;
+			}
+			if (parsed.ok && parsed.data?.status === 'success') {
+				statusMessage = '✅ บันทึกลำดับเรียบร้อยแล้ว';
+				listDirty = false;
+				setTimeout(() => (statusMessage = ''), 2500);
+			} else {
+				listItems = previous;
+				statusMessage = '❌ ' + (parsed.message || 'บันทึกลำดับไม่สำเร็จ');
+			}
+		} catch (e) {
+			listItems = previous;
+			statusMessage = '❌ ผิดพลาด: ' + e.message;
+		} finally {
+			loading = false;
+		}
+	}
+
 	async function focusModalField(id) {
 		await tick();
 		document.getElementById(id)?.focus();
@@ -332,6 +528,43 @@
 	let certificatesTestCount = null;
 	let certificatesTestError = '';
 
+	let bannerImageUrl = DEFAULT_BANNER_IMAGE;
+	let bannerLinkUrl = DEFAULT_BANNER_LINK;
+	let bannerAltText = DEFAULT_BANNER_ALT;
+	let bannerImageFile = null;
+	let bannerPreviewObjectUrl = '';
+	let savedBannerImageUrl = DEFAULT_BANNER_IMAGE;
+	let savedBannerLinkUrl = DEFAULT_BANNER_LINK;
+	let savedBannerAltText = DEFAULT_BANNER_ALT;
+
+	function revokeBannerPreviewUrl() {
+		if (bannerPreviewObjectUrl) {
+			URL.revokeObjectURL(bannerPreviewObjectUrl);
+			bannerPreviewObjectUrl = '';
+		}
+	}
+
+	function bannerPreviewSrc() {
+		if (bannerPreviewObjectUrl) return bannerPreviewObjectUrl;
+		return resolveDocumentOpenUrl(bannerImageUrl);
+	}
+
+	/** @param {Event} e */
+	function onBannerFileChange(e) {
+		const file = /** @type {HTMLInputElement} */ (e.currentTarget).files?.[0] || null;
+		revokeBannerPreviewUrl();
+		bannerImageFile = null;
+		if (!file) return;
+		const check = validateImageForUpload(file);
+		if (!check.ok) {
+			statusMessage = '❌ ' + check.message;
+			e.currentTarget.value = '';
+			return;
+		}
+		bannerImageFile = file;
+		bannerPreviewObjectUrl = URL.createObjectURL(file);
+	}
+
 	async function selectTab(tab) {
 		if (tab !== activeTab && hasUnsavedChanges()) {
 			if (
@@ -343,6 +576,9 @@
 			}
 			listDirty = false;
 			certificatesDirty = false;
+			bannerDirty = false;
+			revokeBannerPreviewUrl();
+			bannerImageFile = null;
 		}
 		activeTab = tab;
 		newsPage = 1;
@@ -351,14 +587,20 @@
 		dataHint = '';
 		if (tab === 'certificates') {
 			await loadCertificatesConfig();
+		} else if (tab === 'banner') {
+			await loadBannerConfig();
 		} else if (isItemCollectionTab(tab)) {
 			await loadCollection(tab);
 		} else if (isListTab(tab)) {
 			await loadList(tab);
-		} else if (tab === 'news') {
-			dataHint = emptyDataHint(newsDataSource, news.length);
-		} else if (tab === 'activity') {
-			dataHint = emptyDataHint(activityDataSource, activities.length);
+		} else if (tab === 'news' || tab === 'activity') {
+			if (news.length === 0 && activities.length === 0) {
+				await loadData();
+			} else if (tab === 'news') {
+				dataHint = emptyDataHint(newsDataSource, news.length);
+			} else {
+				dataHint = emptyDataHint(activityDataSource, activities.length);
+			}
 		}
 	}
 
@@ -373,6 +615,9 @@
 				certificatesSheetUrl = parsed.data.sheetUrl || '';
 				savedCertificatesSheetUrl = certificatesSheetUrl;
 				certificatesDirty = false;
+				if (certificatesSheetUrl) {
+					await loadCertificatesList();
+				}
 			} else {
 				statusMessage = '❌ ' + (parsed.message || 'โหลดการตั้งค่าไม่สำเร็จ');
 			}
@@ -415,30 +660,279 @@
 		}
 	}
 
-	function parseCertificateCSV(text) {
-		const rows = text.split('\n').filter((r) => r.trim() !== '');
-		if (rows.length < 2) return [];
-		return rows.slice(1);
+	async function loadBannerConfig() {
+		loading = true;
+		revokeBannerPreviewUrl();
+		bannerImageFile = null;
+		try {
+			const parsed = await fetchAdminJson('/api/banner/config');
+			if (handleAuthFailure(parsed)) return;
+			if (parsed.ok && parsed.data) {
+				bannerImageUrl = parsed.data.imageUrl || DEFAULT_BANNER_IMAGE;
+				bannerLinkUrl = parsed.data.linkUrl || DEFAULT_BANNER_LINK;
+				bannerAltText = parsed.data.altText || DEFAULT_BANNER_ALT;
+				savedBannerImageUrl = bannerImageUrl;
+				savedBannerLinkUrl = bannerLinkUrl;
+				savedBannerAltText = bannerAltText;
+				bannerDirty = false;
+			} else {
+				statusMessage = '❌ ' + (parsed.message || 'โหลดแบนเนอร์ไม่สำเร็จ');
+			}
+		} catch {
+			statusMessage = '❌ โหลดแบนเนอร์ไม่สำเร็จ';
+		} finally {
+			loading = false;
+		}
 	}
 
-	async function testCertificatesSheet() {
-		const sheetUrl = certificatesSheetUrl.trim();
-		if (!sheetUrl) {
-			certificatesTestError = 'กรุณาระบุ URL ก่อนทดสอบ';
-			certificatesTestCount = null;
+	async function saveBannerConfig() {
+		if (loading) return;
+		const altText = bannerAltText.trim();
+		if (!altText) {
+			statusMessage = '❌ กรุณาระบุข้อความ alt';
 			return;
 		}
 		loading = true;
-		certificatesTestCount = null;
+		statusMessage = '⏳ กำลังบันทึก...';
+		try {
+			const fd = new FormData();
+			fd.append('linkUrl', bannerLinkUrl.trim());
+			fd.append('altText', altText);
+			if (bannerImageFile) {
+				fd.append('imageFile', bannerImageFile);
+			}
+			const parsed = await fetchAdminJson('/api/banner/config', {
+				method: 'POST',
+				body: fd
+			});
+			if (handleAuthFailure(parsed)) return;
+			if (parsed.ok && parsed.data?.status === 'success') {
+				statusMessage = '✅ ' + parsed.data.message;
+				bannerImageUrl = parsed.data.imageUrl || bannerImageUrl;
+				bannerLinkUrl = parsed.data.linkUrl || bannerLinkUrl;
+				bannerAltText = parsed.data.altText || altText;
+				savedBannerImageUrl = bannerImageUrl;
+				savedBannerLinkUrl = bannerLinkUrl;
+				savedBannerAltText = bannerAltText;
+				bannerDirty = false;
+				revokeBannerPreviewUrl();
+				bannerImageFile = null;
+				await invalidateAll();
+				setTimeout(() => (statusMessage = ''), 3000);
+			} else {
+				statusMessage = '❌ ' + (parsed.message || 'บันทึกไม่สำเร็จ');
+			}
+		} catch (e) {
+			statusMessage = '❌ ผิดพลาด: ' + e.message;
+		} finally {
+			loading = false;
+		}
+	}
+
+	// Certificate Full Management State
+	let certList = [];
+	let certSearchTerm = '';
+	let certFilterYear = '';
+	let certFilterCourse = '';
+	let certYears = [];
+	let certCourses = [];
+	let certTypes = [];
+	let showCertModal = false;
+	let certModalTitle = '📜 เพิ่มเกียรติบัตร';
+	let certFormRow = null;
+	let certFormName = '';
+	let certFormCourse = '';
+	let certFormYear = '';
+	let certFormType = '';
+	let certFormLink = '';
+	let certActionLoading = false;
+	let isCustomCourse = false;
+	let isCustomYear = false;
+	let isCustomType = false;
+
+	function parseCertRows(text) {
+		const rows = text.split('\n').filter((r) => r.trim() !== '');
+		if (rows.length < 2) return [];
+		const headers = rows[0].split(',').map((h) => h.trim().replace(/^"|"$/g, '').toLowerCase());
+
+		return rows.slice(1).map((row, idx) => {
+			const values = [];
+			let inQuote = false;
+			let currentVal = '';
+			for (let i = 0; i < row.length; i++) {
+				const char = row[i];
+				if (char === '"') inQuote = !inQuote;
+				else if (char === ',' && !inQuote) {
+					values.push(currentVal.trim().replace(/^"|"$/g, ''));
+					currentVal = '';
+				} else {
+					currentVal += char;
+				}
+			}
+			values.push(currentVal.trim().replace(/^"|"$/g, ''));
+
+			const obj = { _row: idx + 2 };
+			headers.forEach((h, index) => {
+				obj[h] = values[index] || '';
+			});
+
+			return {
+				_row: obj._row,
+				name: obj.name || obj['ชื่อ-สกุล'] || obj['ชื่อ'] || '',
+				course: obj.course || obj['หลักสูตร'] || '-',
+				year: obj.year || obj['ปี'] || obj['ปีการศึกษา'] || '',
+				type: obj.type || obj['ประเภท'] || '-',
+				link: obj.link || obj['ลิงก์'] || obj['เอกสาร'] || ''
+			};
+		});
+	}
+
+	async function loadCertificatesList(forceRefresh = false) {
+		const url = certificatesSheetUrl.trim();
+		if (!url) return;
+		loading = true;
 		certificatesTestError = '';
 		try {
-			const res = await fetch(sheetUrl);
-			if (!res.ok) throw new Error('HTTP ' + res.status);
-			const text = await res.text();
-			const rows = parseCertificateCSV(text);
-			certificatesTestCount = rows.length;
+			const isGas = url.includes('script.google.com');
+			if (isGas) {
+				const fetchUrl = url + (url.includes('?') ? '&' : '?') + 't=' + Date.now();
+				const res = await fetch(fetchUrl);
+				const json = await res.json();
+				if (json && json.status === 'success' && Array.isArray(json.data)) {
+					certList = json.data;
+				} else {
+					throw new Error(json.message || 'รูปแบบ JSON จาก Google Apps Script ไม่ถูกต้อง');
+				}
+			} else {
+				const res = await fetch(url + (url.includes('?') ? '&' : '?') + '_t=' + Date.now());
+				if (!res.ok) throw new Error('HTTP ' + res.status);
+				const text = await res.text();
+				certList = parseCertRows(text);
+			}
+
+			certYears = [...new Set(certList.map((c) => c.year).filter(Boolean))].sort().reverse();
+			certCourses = [...new Set(certList.map((c) => c.course).filter((c) => c && c !== '-'))].sort();
+			certTypes = [...new Set(certList.map((c) => c.type).filter((c) => c && c !== '-'))].sort();
+			certificatesTestCount = certList.length;
 		} catch (e) {
-			certificatesTestError = 'โหลดไม่สำเร็จ: ' + e.message;
+			certificatesTestError = 'โหลดข้อมูลไม่สำเร็จ: ' + e.message;
+			certList = [];
+		} finally {
+			loading = false;
+		}
+	}
+
+	$: filteredCertList = certList.filter((c) => {
+		if (certFilterYear && c.year !== certFilterYear) return false;
+		if (certFilterCourse && c.course !== certFilterCourse) return false;
+		if (certSearchTerm) {
+			const term = certSearchTerm.toLowerCase().trim();
+			const matchName = (c.name || '').toLowerCase().includes(term);
+			const matchCourse = (c.course || '').toLowerCase().includes(term);
+			return matchName || matchCourse;
+		}
+		return true;
+	});
+
+	function openAddCertModal() {
+		certFormRow = null;
+		certModalTitle = '📜 เพิ่มเกียรติบัตร';
+		certFormName = '';
+		certFormCourse = '';
+		certFormYear = '';
+		certFormType = '';
+		certFormLink = '';
+		isCustomCourse = false;
+		isCustomYear = false;
+		isCustomType = false;
+		showCertModal = true;
+	}
+
+	function openEditCertModal(item) {
+		certFormRow = item._row;
+		certModalTitle = '✏️ แก้ไขข้อมูลเกียรติบัตร';
+		certFormName = item.name || '';
+		certFormCourse = item.course || '';
+		certFormYear = item.year || '';
+		certFormType = item.type || '';
+		certFormLink = item.link || '';
+		isCustomCourse = Boolean(certFormCourse && !certCourses.includes(certFormCourse));
+		isCustomYear = Boolean(certFormYear && !certYears.includes(certFormYear));
+		isCustomType = Boolean(certFormType && !certTypes.includes(certFormType));
+		showCertModal = true;
+	}
+
+	function closeCertModal() {
+		showCertModal = false;
+	}
+
+	async function submitCertForm() {
+		const url = certificatesSheetUrl.trim();
+		if (!url || !url.includes('script.google.com')) {
+			alert('⚠️ กรุณาระบุ Google Apps Script Web App URL ที่ช่องด้านบนและกดบันทึกก่อน เพื่อให้สามารถเขียนลง Google Sheets ได้แบบ Realtime!');
+			return;
+		}
+		if (!certFormName.trim()) {
+			alert('กรุณากรอกชื่อ-สกุล');
+			return;
+		}
+
+		certActionLoading = true;
+		const payload = {
+			action: certFormRow ? 'update' : 'add',
+			row: certFormRow,
+			item: {
+				name: certFormName.trim(),
+				course: certFormCourse.trim(),
+				year: certFormYear.trim(),
+				type: certFormType.trim(),
+				link: certFormLink.trim()
+			}
+		};
+
+		try {
+			const res = await fetch(url, {
+				method: 'POST',
+				body: JSON.stringify(payload)
+			});
+			const result = await res.json();
+			if (result.status === 'success') {
+				alert(certFormRow ? '✅ อัปเดตข้อมูลสำเร็จ!' : '✅ เพิ่มเกียรติบัตรสำเร็จ!');
+				closeCertModal();
+				await loadCertificatesList(true);
+			} else {
+				alert('❌ ไม่สามารถบันทึกได้: ' + (result.message || ''));
+			}
+		} catch (e) {
+			alert('❌ เกิดข้อผิดพลาดในการเชื่อมต่อ Google Apps Script: ' + e.message);
+		} finally {
+			certActionLoading = false;
+		}
+	}
+
+	async function deleteCertRow(rowNum, name) {
+		const url = certificatesSheetUrl.trim();
+		if (!url || !url.includes('script.google.com')) {
+			alert('⚠️ กรุณาระบุ Google Apps Script Web App URL เพื่อลบข้อมูลออกจาก Sheet');
+			return;
+		}
+		if (!confirm(`ยืนยันการลบเกียรติบัตรของ "${name}" ออกจาก Google Sheets?`)) return;
+
+		loading = true;
+		try {
+			const res = await fetch(url, {
+				method: 'POST',
+				body: JSON.stringify({ action: 'delete', row: rowNum })
+			});
+			const result = await res.json();
+			if (result.status === 'success') {
+				alert('✅ ลบรายการเรียบร้อยแล้ว!');
+				await loadCertificatesList(true);
+			} else {
+				alert('❌ ลบไม่สำเร็จ: ' + (result.message || ''));
+			}
+		} catch (e) {
+			alert('❌ ผิดพลาด: ' + e.message);
 		} finally {
 			loading = false;
 		}
@@ -460,12 +954,11 @@
 
 	onMount(async () => {
 		window.addEventListener('beforeunload', handleBeforeUnload);
-		if (news.length === 0 && activities.length === 0) {
-			await loadData();
-		}
+		await loadCollection('personnel');
 	});
 
 	onDestroy(() => {
+		revokeBannerPreviewUrl();
 		if (typeof window !== 'undefined') {
 			window.removeEventListener('beforeunload', handleBeforeUnload);
 		}
@@ -473,6 +966,12 @@
 
 	$: certificatesDirty =
 		activeTab === 'certificates' && certificatesSheetUrl !== savedCertificatesSheetUrl;
+
+	$: bannerDirty =
+		activeTab === 'banner' &&
+		(bannerLinkUrl !== savedBannerLinkUrl ||
+			bannerAltText !== savedBannerAltText ||
+			Boolean(bannerImageFile));
 
 	async function loadData() {
 		loading = true;
@@ -540,15 +1039,6 @@
 
 	function removeListItem(index) {
 		listItems = listItems.filter((_, i) => i !== index);
-		markListDirty();
-	}
-
-	function moveListItem(index, direction) {
-		const newIndex = index + direction;
-		if (newIndex < 0 || newIndex >= listItems.length) return;
-		const next = [...listItems];
-		[next[index], next[newIndex]] = [next[newIndex], next[index]];
-		listItems = next;
 		markListDirty();
 	}
 
@@ -778,18 +1268,15 @@
 					<p class="admin-user">👤 {userDisplay}{role ? ` (${role})` : ''}</p>
 				{/if}
 			</div>
-			<a href="/logout" class="admin-logout-btn">ออกจากระบบ</a>
+			<a href="/logout" class="admin-logout-btn" data-sveltekit-reload>ออกจากระบบ</a>
 		</div>
 	</header>
 
 	<nav class="admin-nav">
 		<div class="container">
-			<button class:active={activeTab === 'news'} on:click={() => selectTab('news')}>📰 ข่าวประชาสัมพันธ์</button>
-			<button class:active={activeTab === 'activity'} on:click={() => selectTab('activity')}>📸 ภาพกิจกรรม</button>
-			{#each listTypes as type}
-				<button class:active={activeTab === type.id} on:click={() => selectTab(type.id)}>{type.name}</button>
+			{#each adminNavTabs as tab}
+				<button class:active={activeTab === tab.id} on:click={() => selectTab(tab.id)}>{tab.label}</button>
 			{/each}
-			<button class:active={activeTab === 'certificates'} on:click={() => selectTab('certificates')}>🏆 คลังเกียรติบัตร</button>
 		</div>
 	</nav>
 
@@ -806,9 +1293,16 @@
 				</div>
 			</div>
 
-			<div class="items-list">
-				{#each paginatedNews as item}
-					<div class="admin-item">
+			{#if statusMessage}
+				<div class="status-box" role="status" aria-live="polite" aria-label={statusAriaLabel(statusMessage)} class:error={statusMessage.includes('❌')} class:success={statusMessage.includes('✅')}>
+					{statusMessage}
+				</div>
+			{/if}
+
+			<div class="items-list" use:bindSortable={{ onReorder: onNewsReorder }}>
+				{#each paginatedNews as item (item.id)}
+					<div class="admin-item" data-id={item.id}>
+						<button type="button" class="drag-handle" aria-label="ลากเพื่อจัดลำดับ">☰</button>
 						<div class="item-doc">
 							<span class="doc-icon" aria-hidden="true">📄</span>
 							<span class="doc-label">PDF</span>
@@ -853,9 +1347,16 @@
 				<button class="btn-add" on:click={() => openModal('activity')}>+ เพิ่มภาพกิจกรรม</button>
 			</div>
 
-			<div class="items-list">
-				{#each paginatedActivities as item}
-					<div class="admin-item">
+			{#if statusMessage}
+				<div class="status-box" role="status" aria-live="polite" aria-label={statusAriaLabel(statusMessage)} class:error={statusMessage.includes('❌')} class:success={statusMessage.includes('✅')}>
+					{statusMessage}
+				</div>
+			{/if}
+
+			<div class="items-list" use:bindSortable={{ onReorder: onActivityReorder }}>
+				{#each paginatedActivities as item (item.id)}
+					<div class="admin-item" data-id={item.id}>
+						<button type="button" class="drag-handle" aria-label="ลากเพื่อจัดลำดับ">☰</button>
 						<div class="item-img">
 							<img src={item.image} alt={item.title || 'ภาพกิจกรรม'} loading="lazy" decoding="async" on:error={handleImgError}>
 						</div>
@@ -894,33 +1395,35 @@
 			<div class="list-editor certificates-config">
 				<div class="tab-header">
 					<h2>
-						🏆 ตั้งค่าคลังเกียรติบัตร (Google Sheet)
-						{#if certificatesDirty}<span class="dirty-badge">ยังไม่บันทึก</span>{/if}
+						🏆 คลังเกียรติบัตร (Google Sheets Realtime 2-Way Sync)
+						{#if certificatesDirty}<span class="dirty-badge">ยังไม่บันทึก URL</span>{/if}
 					</h2>
+					<div class="tab-header-actions">
+						<button class="btn-add" type="button" on:click={openAddCertModal}>+ เพิ่มเกียรติบัตร</button>
+						<button class="btn-test" type="button" on:click={() => loadCertificatesList(true)} disabled={loading}>🔄 รีเฟรชข้อมูลสด</button>
+					</div>
 				</div>
 
-				<p class="cert-help">
-					แก้ไขรายชื่อเกียรติบัตรใน Google Sheet โดยตรง จากนั้นวางลิงก์ CSV ที่เผยแพร่แล้ว (Publish to web → ลิงก์ลงท้ายด้วย <code>output=csv</code>)
-				</p>
-
-				<div class="form-group">
-					<label for="cert-sheet-url">URL ของ Google Sheets (CSV)</label>
-					<input
-						type="url"
-						id="cert-sheet-url"
-						class="cert-url-input"
-						bind:value={certificatesSheetUrl}
-						placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?output=csv"
-					>
-				</div>
-
-				<div class="cert-actions-row">
-					<button class="btn-save" on:click={saveCertificatesConfig} disabled={loading}>
-						{loading ? 'กำลังบันทึก...' : '💾 บันทึกการตั้งค่า'}
-					</button>
-					<button class="btn-test" type="button" on:click={testCertificatesSheet} disabled={loading}>
-						🔍 ทดสอบโหลด
-					</button>
+				<div class="form-group" style="margin-bottom: 1.5rem; background: var(--bg-card, #1e1e1e); padding: 1rem; border-radius: 8px; border: 1px dashed var(--border-color, #444);">
+					<label for="cert-sheet-url" style="font-weight: 600; margin-bottom: 0.5rem; display: block;">
+						🔗 URL ของ Google Apps Script Web App หรือ Google Sheets (CSV)
+					</label>
+					<div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+						<input
+							type="url"
+							id="cert-sheet-url"
+							class="cert-url-input"
+							style="flex: 1; min-width: 260px;"
+							bind:value={certificatesSheetUrl}
+							placeholder="https://script.google.com/macros/s/.../exec หรือ https://docs.google.com/spreadsheets/d/e/.../pub?output=csv"
+						>
+						<button class="btn-save" style="margin: 0; white-space: nowrap;" on:click={saveCertificatesConfig} disabled={loading}>
+							{loading ? 'กำลังบันทึก...' : '💾 บันทึก URL'}
+						</button>
+					</div>
+					<small style="color: var(--text-muted, #aaa); margin-top: 0.5rem; display: block;">
+						💡 หากใส่ URL ของ <strong>Google Apps Script Web App</strong> จะสามารถ <strong>เพิ่ม / แก้ไข / ลบ</strong> ข้อมูลลงใน Google Sheets ได้แบบ Realtime ทันที!
+					</small>
 				</div>
 
 				{#if statusMessage}
@@ -929,17 +1432,187 @@
 					</div>
 				{/if}
 
-				{#if certificatesTestCount !== null}
-					<p class="cert-test-result success-text">โหลดได้ {certificatesTestCount} รายการ (ไม่รวมหัวตาราง)</p>
-				{/if}
 				{#if certificatesTestError}
-					<p class="cert-test-result error-text">{certificatesTestError}</p>
+					<div class="status-box error" role="alert">{certificatesTestError}</div>
+				{/if}
+
+				<!-- Search & Filter Row -->
+				<div style="display: flex; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap;">
+					<input
+						type="text"
+						placeholder="🔍 ค้นหาชื่อ หรือ หลักสูตร..."
+						bind:value={certSearchTerm}
+						style="flex: 1; min-width: 200px; padding: 0.6rem 1rem; border-radius: 6px; border: 1px solid var(--border-color, #444); background: var(--bg-input, #2a2a2a); color: var(--text-main, #fff);"
+					>
+					<select
+						bind:value={certFilterYear}
+						style="padding: 0.6rem 1rem; border-radius: 6px; border: 1px solid var(--border-color, #444); background: var(--bg-input, #2a2a2a); color: var(--text-main, #fff);"
+					>
+						<option value="">ปีทั้งหมด</option>
+						{#each certYears as yr}
+							<option value={yr}>{yr}</option>
+						{/each}
+					</select>
+					<select
+						bind:value={certFilterCourse}
+						style="padding: 0.6rem 1rem; border-radius: 6px; border: 1px solid var(--border-color, #444); background: var(--bg-input, #2a2a2a); color: var(--text-main, #fff);"
+					>
+						<option value="">หลักสูตรทั้งหมด</option>
+						{#each certCourses as cr}
+							<option value={cr}>{cr}</option>
+						{/each}
+					</select>
+				</div>
+
+				<!-- Table of Certificates -->
+				<div style="overflow-x: auto; background: var(--bg-card, #1e1e1e); border-radius: 8px; border: 1px solid var(--border-color, #333);">
+					<table style="width: 100%; border-collapse: collapse; text-align: left;">
+						<thead>
+							<tr style="background: rgba(156, 39, 176, 0.15); border-bottom: 2px solid var(--border-color, #333);">
+								<th style="padding: 0.75rem 1rem;">#</th>
+								<th style="padding: 0.75rem 1rem;">ชื่อ-สกุล</th>
+								<th style="padding: 0.75rem 1rem;">หลักสูตร</th>
+								<th style="padding: 0.75rem 1rem;">ปี พ.ศ.</th>
+								<th style="padding: 0.75rem 1rem;">ประเภท</th>
+								<th style="padding: 0.75rem 1rem;">เอกสาร</th>
+								<th style="padding: 0.75rem 1rem; text-align: center;">จัดการ</th>
+							</tr>
+						</thead>
+						<tbody>
+							{#if loading}
+								<tr>
+									<td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted, #888);">
+										⏳ กำลังโหลดข้อมูลเกียรติบัตร...
+									</td>
+								</tr>
+							{:else if filteredCertList.length === 0}
+								<tr>
+									<td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted, #888);">
+										ไม่พบรายการเกียรติบัตร
+									</td>
+								</tr>
+							{:else}
+								{#each filteredCertList as item, i (item._row || i)}
+									<tr style="border-bottom: 1px solid var(--border-color, #333);">
+										<td style="padding: 0.75rem 1rem; color: var(--text-muted, #888);">{i + 1}</td>
+										<td style="padding: 0.75rem 1rem; font-weight: 600;">{item.name || '-'}</td>
+										<td style="padding: 0.75rem 1rem;">{item.course || '-'}</td>
+										<td style="padding: 0.75rem 1rem;">{item.year || '-'}</td>
+										<td style="padding: 0.75rem 1rem;">
+											<span style="background: rgba(156, 39, 176, 0.2); color: #ce93d8; padding: 2px 8px; border-radius: 12px; font-size: 0.85rem; font-weight: 600;">
+												{item.type || '-'}
+											</span>
+										</td>
+										<td style="padding: 0.75rem 1rem;">
+											{#if item.link}
+												<a href={item.link} target="_blank" rel="noreferrer" style="color: #ba68c8; text-decoration: underline;">
+													🔗 เปิดดู
+												</a>
+											{:else}
+												<span style="color: var(--text-muted, #666);">-</span>
+											{/if}
+										</td>
+										<td style="padding: 0.75rem 1rem; text-align: center; white-space: nowrap;">
+											<button
+												type="button"
+												class="btn-edit"
+												style="padding: 4px 8px; font-size: 0.85rem; margin-right: 4px;"
+												on:click={() => openEditCertModal(item)}
+											>
+												✏️ แก้ไข
+											</button>
+											<button
+												type="button"
+												class="btn-delete"
+												style="padding: 4px 8px; font-size: 0.85rem; background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; border-radius: 4px; cursor: pointer;"
+												on:click={() => deleteCertRow(item._row, item.name)}
+											>
+												🗑️ ลบ
+											</button>
+										</td>
+									</tr>
+								{/each}
+							{/if}
+						</tbody>
+					</table>
+				</div>
+				<div style="margin-top: 0.75rem; text-align: right; color: var(--text-muted, #888); font-size: 0.9rem;">
+					แสดง {filteredCertList.length} จากทั้งหมด {certList.length} รายการ
+				</div>
+			</div>
+		{:else if activeTab === 'banner'}
+			<div class="list-editor banner-config">
+				<div class="tab-header">
+					<h2>
+						🖼️ แบนเนอร์ด้านบนเว็บไซต์
+						{#if bannerDirty}<span class="dirty-badge">ยังไม่บันทึก</span>{/if}
+					</h2>
+				</div>
+
+				<p class="banner-help">
+					รูปแบนเนอร์ static แสดงด้านบนทุกหน้า (header) — อัตราส่วนแนะนำ <strong>6063×1250 px</strong> (~4.85:1) มีบุคลากร 3 ท่านพร้อมชื่อ/ตำแหน่งบน nameplate ลำดับ: รอง ผอ.เขต → ผอ.กลุ่ม → นักทรัพยากรบุคคล ไฟล์ JPEG/PNG/WebP สูงสุด {MAX_IMAGE_MB} MB สร้างใน Canva/Figma/Photoshop หรือรัน <code>node scripts/composite-banner.mjs</code> จากรูpใน repo
+				</p>
+
+				<div class="banner-preview-wrap">
+					<img
+						src={bannerPreviewSrc()}
+						alt={bannerAltText || 'ตัวอย่างแบนเนอร์'}
+						class="banner-preview-img"
+						loading="lazy"
+						decoding="async"
+					>
+				</div>
+
+				<div class="form-group">
+					<label for="banner-link-url">ลิงก์เมื่อคลิกแบนเนอร์</label>
+					<input
+						type="text"
+						id="banner-link-url"
+						class="banner-url-input"
+						bind:value={bannerLinkUrl}
+						placeholder="/ หรือ https://..."
+					>
+				</div>
+
+				<div class="form-group">
+					<label for="banner-alt-text">ข้อความ alt (สำหรับผู้ใช้ screen reader)</label>
+					<input
+						type="text"
+						id="banner-alt-text"
+						class="banner-url-input"
+						bind:value={bannerAltText}
+						placeholder={DEFAULT_BANNER_ALT}
+					>
+				</div>
+
+				<div class="form-group">
+					<label for="banner-image-file">อัปโหลดรูปใหม่ (ไม่เลือก = ใช้รูปเดิม)</label>
+					<input
+						type="file"
+						id="banner-image-file"
+						accept="image/jpeg,image/png,image/webp,image/gif"
+						on:change={onBannerFileChange}
+					>
+				</div>
+
+				<div class="cert-actions-row">
+					<button class="btn-save" on:click={saveBannerConfig} disabled={loading}>
+						{loading ? 'กำลังบันทึก...' : '💾 บันทึกแบนเนอร์'}
+					</button>
+				</div>
+
+				{#if statusMessage}
+					<div class="status-box" role="status" aria-live="polite" aria-label={statusAriaLabel(statusMessage)} class:error={statusMessage.includes('❌')} class:success={statusMessage.includes('✅')}>
+						{statusMessage}
+					</div>
 				{/if}
 			</div>
 		{:else if isItemCollectionTab(activeTab)}
 			<div class="tab-header">
 				<h2>{listTypes.find((t) => t.id === activeTab)?.name} ({collectionItems.length})</h2>
-				<button class="btn-add" on:click={() => openCollectionModal()}>+ เพิ่มรายการ</button>
+				<div class="actions">
+					<button class="btn-add" on:click={() => openCollectionModal()}>+ เพิ่มรายการ</button>
+				</div>
 			</div>
 
 			{#if statusMessage}
@@ -948,12 +1621,13 @@
 				</div>
 			{/if}
 
-			<div class="items-list">
-				{#each paginatedCollection as item}
-					<div class="admin-item">
+			<div class="items-list" use:bindSortable={{ onReorder: onCollectionReorder }}>
+				{#each paginatedCollection as item (item.id)}
+					<div class="admin-item" data-id={item.id}>
+						<button type="button" class="drag-handle" aria-label="ลากเพื่อจัดลำดับ">☰</button>
 						{#if activeTab === 'personnel'}
 							<div class="item-img item-img--portrait">
-								<img src={personnelImageSrc(item.image)} alt={item.name || 'รูปบุคลากร'} loading="lazy" decoding="async" on:error={handleImgError}>
+								<img src={resolvePersonnelImageSrc(item.image)} alt={item.name || 'รูปบุคลากร'} loading="lazy" decoding="async" on:error={handleImgError}>
 							</div>
 							<div class="item-info">
 								<h3>{item.name}</h3>
@@ -1022,26 +1696,11 @@
 					</div>
 				{/if}
 
-				<div class="items-list-editor">
-					{#each listItems as item, i}
-						<div class="list-edit-row">
+				<div class="items-list-editor" use:bindSortable={{ onReorder: onAuthorityReorder }}>
+					{#each listItems as item, i (i + ':' + item)}
+						<div class="list-edit-row" data-id={String(i)}>
+							<button type="button" class="drag-handle" aria-label="ลากเพื่อจัดลำดับ">☰</button>
 							<span class="index">{i + 1}</span>
-							<div class="row-order-btns">
-								<button
-									type="button"
-									class="btn-order"
-									disabled={i === 0}
-									on:click={() => moveListItem(i, -1)}
-									aria-label="เลื่อนขึ้น"
-								>↑</button>
-								<button
-									type="button"
-									class="btn-order"
-									disabled={i === listItems.length - 1}
-									on:click={() => moveListItem(i, 1)}
-									aria-label="เลื่อนลง"
-								>↓</button>
-							</div>
 							<input type="text" id="auth-{i}" bind:value={listItems[i]} on:input={markListDirty} placeholder="รายละเอียดอำนาจหน้าที่...">
 							<button class="btn-remove" type="button" on:click={() => removeListItem(i)}>&times;</button>
 						</div>
@@ -1229,6 +1888,145 @@
 					{loading ? 'กำลังบันทึก...' : '💾 บันทึกข้อมูล'}
 				</button>
 			</div>
+		</div>
+	</div>
+{/if}
+
+{#if showCertModal}
+	<div class="modal-backdrop" on:click={closeCertModal} role="presentation">
+		<div
+			class="modal-content"
+			style="max-width: 520px;"
+			on:click|stopPropagation
+			role="dialog"
+			aria-modal="true"
+		>
+			<div class="modal-header">
+				<h3>{certModalTitle}</h3>
+				<button class="close-btn" type="button" on:click={closeCertModal} aria-label="ปิดหน้าต่าง">&times;</button>
+			</div>
+			<form on:submit|preventDefault={submitCertForm}>
+				<div class="modal-body">
+					<div class="form-group">
+						<label for="modal-cert-name">ชื่อ-สกุล <span style="color:red;">*</span></label>
+						<input type="text" id="modal-cert-name" bind:value={certFormName} required placeholder="เช่น นายสมชาย ใจดี">
+					</div>
+					<div class="form-group">
+						<div class="field-label-row">
+							<label for="modal-cert-course">หลักสูตร / โครงการ <span style="color:red;">*</span></label>
+							<button type="button" class="btn-toggle-custom" on:click={() => { isCustomCourse = !isCustomCourse; if (isCustomCourse) certFormCourse = ''; }}>
+								{isCustomCourse ? '📋 เลือกจากรายการ' : '➕ อื่นๆ (พิมพ์เอง)'}
+							</button>
+						</div>
+						{#if !isCustomCourse}
+							<select
+								id="modal-cert-course"
+								bind:value={certFormCourse}
+								on:change={(e) => {
+									if (e.currentTarget.value === '__custom__') {
+										isCustomCourse = true;
+										certFormCourse = '';
+									}
+								}}
+								required
+							>
+								<option value="">-- เลือกหลักสูตร --</option>
+								{#each certCourses as course}
+									<option value={course}>{course}</option>
+								{/each}
+								<option value="__custom__">➕ อื่นๆ (พิมพ์ระบุเอง)...</option>
+							</select>
+						{:else}
+							<input
+								type="text"
+								id="modal-cert-course"
+								bind:value={certFormCourse}
+								required
+								placeholder="พิมพ์ชื่อหลักสูตรใหม่..."
+							/>
+						{/if}
+					</div>
+					<div class="form-row" style="gap: 1rem;">
+						<div class="form-group">
+							<div class="field-label-row">
+								<label for="modal-cert-year">ปี พ.ศ.</label>
+								<button type="button" class="btn-toggle-custom" on:click={() => { isCustomYear = !isCustomYear; if (isCustomYear) certFormYear = ''; }}>
+									{isCustomYear ? '📋 เลือก' : '➕ อื่นๆ'}
+								</button>
+							</div>
+							{#if !isCustomYear}
+								<select
+									id="modal-cert-year"
+									bind:value={certFormYear}
+									on:change={(e) => {
+										if (e.currentTarget.value === '__custom__') {
+											isCustomYear = true;
+											certFormYear = '';
+										}
+									}}
+								>
+									<option value="">-- เลือกปี พ.ศ. --</option>
+									{#each certYears as year}
+										<option value={year}>{year}</option>
+									{/each}
+									<option value="__custom__">➕ อื่นๆ (พิมพ์เอง)...</option>
+								</select>
+							{:else}
+								<input
+									type="text"
+									id="modal-cert-year"
+									bind:value={certFormYear}
+									placeholder="เช่น 2569"
+								/>
+							{/if}
+						</div>
+						<div class="form-group">
+							<div class="field-label-row">
+								<label for="modal-cert-type">ประเภท</label>
+								<button type="button" class="btn-toggle-custom" on:click={() => { isCustomType = !isCustomType; if (isCustomType) certFormType = ''; }}>
+									{isCustomType ? '📋 เลือก' : '➕ อื่นๆ'}
+								</button>
+							</div>
+							{#if !isCustomType}
+								<select
+									id="modal-cert-type"
+									bind:value={certFormType}
+									on:change={(e) => {
+										if (e.currentTarget.value === '__custom__') {
+											isCustomType = true;
+											certFormType = '';
+										}
+									}}
+								>
+									<option value="">-- เลือกประเภท --</option>
+									{#each certTypes as type}
+										<option value={type}>{type}</option>
+									{/each}
+									<option value="__custom__">➕ อื่นๆ (พิมพ์เอง)...</option>
+								</select>
+							{:else}
+								<input
+									type="text"
+									id="modal-cert-type"
+									bind:value={certFormType}
+									placeholder="เช่น ผู้ผ่านการอบรม, วิทยากร"
+								/>
+							{/if}
+						</div>
+					</div>
+					<div class="form-group">
+						<label for="modal-cert-link">ลิงก์ Google Drive / PDF</label>
+						<input type="url" id="modal-cert-link" bind:value={certFormLink} placeholder="https://drive.google.com/file/d/.../view?usp=sharing">
+						<p class="field-hint">วางลิงก์ View หรือ Share จาก Google Drive ได้โดยตรง</p>
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn-cancel" on:click={closeCertModal}>ยกเลิก</button>
+					<button type="submit" class="btn-save" disabled={certActionLoading}>
+						{certActionLoading ? '⏳ กำลังบันทึกลง Sheet...' : '💾 บันทึกข้อมูล'}
+					</button>
+				</div>
+			</form>
 		</div>
 	</div>
 {/if}
@@ -1446,6 +2244,46 @@
 		line-height: 1.6;
 	}
 
+	.banner-config .banner-help {
+		color: var(--text-muted);
+		margin: 0 0 1.25rem;
+		line-height: 1.6;
+	}
+
+	.banner-preview-wrap {
+		margin: 0 0 1.5rem;
+		padding: 0.75rem;
+		background: var(--bg-input);
+		border: 1px solid var(--border);
+		border-radius: 8px;
+		max-height: 220px;
+		overflow: hidden;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.banner-preview-img {
+		display: block;
+		max-width: 100%;
+		max-height: 200px;
+		width: auto;
+		height: auto;
+		object-fit: contain;
+	}
+
+	.banner-url-input {
+		width: 100%;
+		padding: 0.8rem;
+		border: 1px solid var(--border);
+		border-radius: 6px;
+		font-family: inherit;
+		background: var(--bg-input);
+		color: var(--text-main);
+		min-height: 44px;
+		box-sizing: border-box;
+	}
+
 	.certificates-config .cert-help code {
 		background: var(--bg-input);
 		padding: 0.15rem 0.4rem;
@@ -1616,6 +2454,28 @@
 		contain-intrinsic-size: auto 120px;
 	}
 
+	.drag-handle {
+		flex-shrink: 0;
+		cursor: grab;
+		user-select: none;
+		border: none;
+		background: transparent;
+		color: var(--text-muted);
+		font-size: 1.25rem;
+		line-height: 1;
+		padding: 0.35rem 0.25rem;
+		min-width: 28px;
+		min-height: 44px;
+	}
+
+	.drag-handle:active {
+		cursor: grabbing;
+	}
+
+	.list-edit-row .drag-handle {
+		margin-right: 0.25rem;
+	}
+
 	.item-img img {
 		width: 100px;
 		height: 70px;
@@ -1706,7 +2566,16 @@
 
 	.item-actions {
 		display: flex;
+		align-items: center;
 		gap: 0.5rem;
+		flex-shrink: 0;
+	}
+
+	.tab-header .actions {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		flex-wrap: wrap;
 	}
 
 	.btn-edit {
@@ -1800,6 +2669,37 @@
 
 	.form-group {
 		margin-bottom: 1.2rem;
+	}
+
+	.field-label-row {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 0.5rem;
+	}
+
+	.field-label-row label {
+		margin-bottom: 0;
+	}
+
+	.btn-toggle-custom {
+		background: none;
+		border: 1px solid var(--border);
+		color: var(--primary);
+		font-size: 0.8rem;
+		cursor: pointer;
+		padding: 2px 8px;
+		border-radius: 4px;
+		font-weight: 600;
+		font-family: inherit;
+		min-height: unset;
+		width: auto;
+		transition: all 0.2s ease;
+	}
+
+	.btn-toggle-custom:hover {
+		background: rgba(156, 39, 176, 0.08);
+		border-color: var(--primary);
 	}
 
 	.form-row {

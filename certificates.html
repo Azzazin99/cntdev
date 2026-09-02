@@ -362,53 +362,58 @@
 
             let allCerts = [];
 
-            // 🟢 ลิงก์จาก Google Sheet (เปลี่ยนตรงนี้)
+            // 🟢 แหล่งข้อมูล Google Sheet / Google Apps Script (Realtime)
+            const SAVED_GAS_URL = localStorage.getItem('gas_cert_api_url');
             const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTRZKKSC38bKraDDdDE5hjVGQtbr1e0inwEK63m73tJAnYaNNo_AbxbGX_IF__eEwRC7_JGB0-dQiDP/pub?output=csv";
 
-
-
-            // 1. Fetch Data (Supports both JSON and CSV)
+            // 1. Fetch Data (Realtime Web App หรือ Published CSV)
             try {
                 loading.style.display = 'block';
 
-                // ถ้ามีลิงก์ Google Sheet ให้โหลดจาก Sheet, ถ้าไม่มีให้โหลดจากไฟล์ JSON เดิม (Backup)
-                const url = GOOGLE_SHEET_CSV_URL;
+                let loadedSuccessfully = false;
 
-                const res = await fetch(url);
-                if (res.ok) {
-                    if (GOOGLE_SHEET_CSV_URL) {
+                if (SAVED_GAS_URL) {
+                    try {
+                        // 1.1 Realtime Fetch ผ่าน Google Apps Script Web App
+                        const fetchUrl = SAVED_GAS_URL + (SAVED_GAS_URL.includes('?') ? '&' : '?') + 't=' + Date.now();
+                        const res = await fetch(fetchUrl);
+                        const json = await res.json();
+                        if (json && json.status === 'success' && Array.isArray(json.data) && json.data.length > 0) {
+                            allCerts = json.data;
+                            loadedSuccessfully = true;
+                        }
+                    } catch (gasErr) {
+                        console.warn("GAS fetch failed, falling back to CSV:", gasErr);
+                    }
+                }
+
+                if (!loadedSuccessfully) {
+                    // 1.2 Fallback ผ่าน Google Sheet CSV (พร้อม Cache-busting)
+                    const url = GOOGLE_SHEET_CSV_URL + (GOOGLE_SHEET_CSV_URL.includes('?') ? '&' : '?') + '_t=' + Date.now();
+                    const res = await fetch(url);
+                    if (res.ok) {
                         const text = await res.text();
                         allCerts = parseCSV(text);
                     } else {
-                        allCerts = await res.json();
+                        throw new Error(`ไม่สามารถเชื่อมต่อ Google Sheet ได้ (${res.status})`);
                     }
-
-                    // 1.5 Trim type data (keep raw value from Google Sheets)
-                    allCerts = allCerts.map(item => {
-                        return { ...item, type: (item.type || '').trim() };
-                    });
-
-
-                    populateYearFilter(allCerts); // สร้างตัวเลือกปี
-                    populateCourseFilter(allCerts); // สร้างตัวเลือกหลักสูตร
-                    populateTypeFilter(allCerts); // สร้างตัวเลือกประเภท
-
-                    // 2. Hybrid View: Show only last 10 items initially
-                    const recentCerts = allCerts.slice(0, 10);
-                    renderTable(recentCerts);
-
-                    // Optional: Add indicator
-                    if (allCerts.length > 10) {
-                        // We could add a "Showing recent..." label here if we had a dedicated element
-                    }
-
-                } else {
-                    console.error("Failed to load certificates");
-                    empty.innerHTML = `❌ ไม่สามารถโหลดข้อมูลได้ <br><small>(${res.status} ${res.statusText})</small>`;
-                    empty.style.display = 'block';
                 }
+
+                // 1.5 Trim type data (keep raw value from Google Sheets)
+                allCerts = allCerts.map(item => {
+                    return { ...item, type: (item.type || '').trim() };
+                });
+
+                populateYearFilter(allCerts); // สร้างตัวเลือกปี
+                populateCourseFilter(allCerts); // สร้างตัวเลือกหลักสูตร
+                populateTypeFilter(allCerts); // สร้างตัวเลือกประเภท
+
+                // 2. Hybrid View: Show only last 10 items initially
+                const recentCerts = allCerts.slice(0, 10);
+                renderTable(recentCerts);
+
             } catch (e) {
-                console.error(e);
+                console.error("Certificate Load Error:", e);
                 empty.innerHTML = `❌ เกิดข้อผิดพลาด: ${e.message}`;
                 empty.style.display = 'block';
             } finally {

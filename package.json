@@ -7,7 +7,8 @@
     "dev": "vite dev",
     "build": "vite build",
     "preview": "vite preview",
-    "audit:lighthouse": "npm run build && npx vite preview --port 4173 --strictPort"
+    "audit:lighthouse": "npm run build && npx vite preview --port 4173 --strictPort",
+    "banner:composite": "node scripts/composite-banner.mjs"
   },
   "keywords": [],
   "author": "",
@@ -20,10 +21,13 @@
     "@vercel/blob": "^2.4.0",
     "firebase": "^12.12.1",
     "firebase-admin": "^13.10.0",
+    "sortablejs": "^1.15.7",
     "svelte": "^5.55.5",
     "vite": "^8.0.10"
   },
   "devDependencies": {
-    "marked": "^18.0.4"
+    "@types/sortablejs": "^1.15.9",
+    "marked": "^18.0.4",
+    "sharp": "^0.35.2"
   }
 }
